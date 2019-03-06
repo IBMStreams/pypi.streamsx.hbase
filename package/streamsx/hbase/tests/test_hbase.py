@@ -45,6 +45,14 @@ def site_xml_env_var():
         result = False
     return result
 
+def hadoop_host_port_env_var():
+    result = True
+    try:
+        os.environ['HADOOP_HOST_PORT']
+    except KeyError: 
+        result = False
+    return result
+
 def cloud_creds_env_var():
     result = True
     try:
@@ -53,55 +61,32 @@ def cloud_creds_env_var():
         result = False
     return result
 
+def _create_stream_for_get(topo):
+    s = topo.source([1,2,3,4,5,6])
+    schema=StreamSchema('tuple<int32 id, rstring who, rstring infoType, rstring requestedDetail>').as_tuple()
+    return s.map(lambda x : (x,'Gandalf', 'location','beginTwoTowers'), schema=schema)
+
+
+class StringData(object):
+    def __init__(self, who, count, delay=True):
+        self.who = who
+        self.count = count
+        self.delay = delay
+    def __call__(self):
+        if self.delay:
+            time.sleep(10)
+        for i in range(self.count):
+            yield self.who
+
+
+
 class TestParams(unittest.TestCase):
 
-    @unittest.skipIf(cloud_creds_env_var() == False, "Missing ANALYTICS_ENGINE environment variable.")
-    def test_cloud_creds(self):
-        creds_file = os.environ['ANALYTICS_ENGINE']
-        with open(creds_file) as data_file:
-            credentials = json.load(data_file)
-        topo = Topology()
-        hbase.scan(topo, credentials, 'a_dir')
-        hbase.scan(topo, credentials=credentials, directory='a_dir', init_delay=10.0)
-
-    @unittest.skipIf(site_xml_env_var() == False, "Missing HBASE_SITE_XML environment variable.")
+    @unittest.skipIf(hadoop_host_port_env_var() == False, "Missing HADOOP_HOST_PORT environment variable.")
     def test_xml_creds(self):
-        xml_file = os.environ['HBASE_SITE_XML']
         topo = Topology()
-        hbase.scan(topo, credentials=xml_file, directory='a_dir')
-        hbase.scan(topo, credentials=xml_file, directory='a_dir', pattern='*.txt', init_delay=datetime.timedelta(seconds=5))
+        hbase.scan(topo, table_name='streamsSample_lotr', max_versions=3)
 
-    def test_bad_cred_param(self):
-        topo = Topology()
-        # expect ValueError because credentials is neither a dict nor a file
-        self.assertRaises(ValueError, hbase.scan, topo, credentials='invalid', directory='any_dir')
-        # expect ValueError because credentials is not expected JSON format
-        invalid_creds = json.loads('{"user" : "user", "password" : "xx", "uri" : "xxx"}')
-        self.assertRaises(ValueError, hbase.scan, topo, credentials=invalid_creds, directory='any_dir')
-
-    @unittest.skipIf(cloud_creds_env_var() == False, "Missing ANALYTICS_ENGINE environment variable.")
-    def test_bad_time_param(self):
-        creds_file = os.environ['ANALYTICS_ENGINE']
-        with open(creds_file) as data_file:
-            credentials = json.load(data_file)
-        topo = Topology()
-        # expect TypeError because init_delay is wrong type (string)
-        self.assertRaises(TypeError, hbase.scan, topo, credentials=credentials, directory='any_dir', init_delay='1')
-        # expect ValueError because init_delay is too small (< 1 sec)
-        self.assertRaises(ValueError, hbase.scan, topo, credentials=credentials, directory='any_dir', init_delay=0.1)
-
-    @unittest.skipIf(cloud_creds_env_var() == False, "Missing ANALYTICS_ENGINE environment variable.")
-    def test_bad_close_file_param(self):
-        creds_file = os.environ['ANALYTICS_ENGINE']
-        with open(creds_file) as data_file:
-            credentials = json.load(data_file)
-        topo = Topology()
-        s = topo.source(['Hello World!']).as_string()
-        # expect ValueError because bytes_per_file, time_per_file, and tuples_per_file parameters are mutually exclusive.
-        self.assertRaises(ValueError, hbase.write, s, credentials=credentials, file='any_file', time_per_file=5, tuples_per_file=5)
-        self.assertRaises(ValueError, hbase.write, s, credentials=credentials, file='any_file', bytes_per_file=5, time_per_file=5)
-        self.assertRaises(ValueError, hbase.write, s, credentials=credentials, file='any_file', bytes_per_file=5, tuples_per_file=5)
-        self.assertRaises(ValueError, hbase.write, s, credentials=credentials, file='any_file', bytes_per_file=200, time_per_file=5, tuples_per_file=5)
 
 
 class TestDistributed(unittest.TestCase):
@@ -116,28 +101,21 @@ class TestDistributed(unittest.TestCase):
         self.hbase_toolkit_location = os.environ['STREAMS_HBASE_TOOLKIT']
  
      # ------------------------------------
-    @unittest.skipIf(site_xml_env_var() == False, "HBASE_SITE_XML environment variable.")
-    def test_hbase_config_path(self):
-        hbase_cfg_file = os.environ['HBASE_SITE_XML']
-
-        topo = Topology('test_hbase_config_path')
+    @unittest.skipIf(hadoop_host_port_env_var() == False, "HADOOP_HOST_PORT environment variable.")
+    def test_hbase_scan(self):
+        topo = Topology('test_hbase_scan')
 
         if self.hbase_toolkit_location is not None:
             tk.add_toolkit(topo, self.hbase_toolkit_location)
+ 
+        topo = Topology()
 
-        s = topo.source(['Hello World!']).as_string()
-        result = hbase.write(s, credentials=hbase_cfg_file, file='pytest1/sample%FILENUM.txt')
-        result.print()
+        scanned_rows = hbase.scan(topo, table_name='streamsSample_lotr', max_versions=1 , init_delay=2)
+        scanned_rows.print()
 
-        scanned_files = hbase.scan(topo, credentials=hbase_cfg_file, directory='pytest1', pattern='sample.*txt', init_delay=10)
-        scanned_files.print()
-
-        lines = hbase.read(scanned_files, credentials=hbase_cfg_file)
-        lines.print()
 
         tester = Tester(topo)
-        tester.tuple_count(lines, 1, exact=True)
-        #tester.run_for(60)
+        tester.tuple_count(scanned_rows, 2, exact=False)
 
         cfg = {}
         job_config = streamsx.topology.context.JobConfig(tracing='info')
@@ -147,31 +125,19 @@ class TestDistributed(unittest.TestCase):
         # Run the test
         tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
 
-    # ------------------------------------
-    @unittest.skipIf(cloud_creds_env_var() == False, "Missing ANALYTICS_ENGINE environment variable.")
-    def test_hbase_uri(self):
-        ae_service_creds_file = os.environ['ANALYTICS_ENGINE']
-        with open(ae_service_creds_file) as data_file:
-            credentials = json.load(data_file)
-
-        topo = Topology('test_hbase_uri')
+    def test_hbase_get(self):
+        topo = Topology('test_hbase_get')
 
         if self.hbase_toolkit_location is not None:
             tk.add_toolkit(topo, self.hbase_toolkit_location)
+        s = _create_stream_for_get(topo) 
+        get_rows = hbase.get(s, table_name='streamsSample_lotr', row_attr_name='who')
+        get_rows.print()
 
-        s = topo.source(['Hello World!']).as_string()
-        result = hbase.write(s, credentials=credentials, file='pytest/sample%FILENUM.txt')
-        result.print()
-
-        scanned_files = hbase.scan(topo, credentials=credentials, directory='pytest', pattern='sample.*txt', init_delay=10)
-        scanned_files.print()
-
-        lines = hbase.read(scanned_files, credentials=credentials)
-        lines.print()
 
         tester = Tester(topo)
-        tester.tuple_count(lines, 1, exact=True)
-        #tester.run_for(60)
+        tester.tuple_count(get_rows, 1, exact=False)
+#        tester.run_for(60)
 
         cfg = {}
         job_config = streamsx.topology.context.JobConfig(tracing='info')
@@ -180,62 +146,4 @@ class TestDistributed(unittest.TestCase):
 
         # Run the test
         tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
-
-    # ------------------------------------
-
-    @unittest.skipIf(cloud_creds_env_var() == False, "Missing ANALYTICS_ENGINE environment variable.")
-    def test_close_on_tuples(self):
-        ae_service_creds_file = os.environ['ANALYTICS_ENGINE']
-        with open(ae_service_creds_file) as data_file:
-            credentials = json.load(data_file)
-
-        topo = Topology('test_hbase_uri')
-
-        if self.hbase_toolkit_location is not None:
-            tk.add_toolkit(topo, self.hbase_toolkit_location)
-
-        s = topo.source(['Hello World!','Hello','World','Hello World!','Hello','World']).as_string()
-        result = hbase.write(s, credentials=credentials, file='pytest/write_test%FILENUM.txt', tuples_per_file=3)
-        result.print()
-
-        tester = Tester(topo)
-        tester.tuple_count(result, 2, exact=True)
-        #tester.run_for(60)
-
-        cfg = {}
-        job_config = streamsx.topology.context.JobConfig(tracing='info')
-        job_config.add(cfg)
-        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
-
-        # Run the test
-        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
-
-    # ------------------------------------
-
-
-class TestCloud(TestDistributed):
-    """ Test in Streaming Analytics Service using local toolkit from STREAMS_HBASE_TOOLKIT environment variable """
-
-    @classmethod
-    def setUpClass(self):
-        # start streams service
-        connection = sr.StreamingAnalyticsConnection()
-        service = connection.get_streaming_analytics()
-        result = service.start_instance()
-
-    def setUp(self):
-        Tester.setup_streaming_analytics(self, force_remote_build=False)
-        self.hbase_toolkit_location = os.environ['STREAMS_HBASE_TOOLKIT']
-
-
-class TestCloudRemote(TestCloud):
-    """ Test in Streaming Analytics Service using remote toolkit from cloud build service """
-
-    @classmethod
-    def setUpClass(self):
-        super().setUpClass()
-
-    def setUp(self):
-        Tester.setup_streaming_analytics(self, force_remote_build=True)
-        self.hbase_toolkit_location = None
 

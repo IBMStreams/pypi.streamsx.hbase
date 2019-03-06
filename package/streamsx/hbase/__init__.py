@@ -69,5 +69,5 @@ a file to HBASE. Scan for created file on HBASE and read the content::
 
 __version__='1.0.0'
 
-__all__ = ['scan', 'read', 'write']
-from streamsx.hbase._hbase import scan, read, write
+__all__ = ['scan', 'get', 'put']
+from streamsx.hbase._hbase import scan, get, put
