@@ -16,8 +16,9 @@ import json
 ##
 ## Test assumptions
 ##
-## Streaming analytics service or Streams instance running
-## IBM cloud Analytics Engine service credentials are located in a file referenced by environment variable ANALYTICS_ENGINE.
+## IBM Streams instance running
+## HBASE server running
+## The hostname and port of HBASE server is referenced by HADOOP_HOST_PORT environment variable.
 ## The core-site.xml is referenced by HBASE_SITE_XML environment variable.
 ## HBASE toolkit location is given by STREAMS_HBASE_TOOLKIT environment variable.
 ##
@@ -51,6 +52,7 @@ def hadoop_host_port_env_var():
         os.environ['HADOOP_HOST_PORT']
     except KeyError: 
         result = False
+#        print ("Missing HADOOP_HOST_PORT environment variable.")
     return result
 
 def cloud_creds_env_var():
@@ -82,10 +84,12 @@ class StringData(object):
 
 class TestParams(unittest.TestCase):
 
-    @unittest.skipIf(hadoop_host_port_env_var() == False, "Missing HADOOP_HOST_PORT environment variable.")
-    def test_xml_creds(self):
+    @unittest.skipIf(((hadoop_host_port_env_var()== False and site_xml_env_var()== False))== True, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
+    def test_hadoop_host_port(self):
         topo = Topology()
         hbase.scan(topo, table_name='streamsSample_lotr', max_versions=3)
+        s = _create_stream_for_get(topo) 
+        hbase.get(s, table_name='streamsSample_lotr', row_attr_name='who')
 
 
 
@@ -101,7 +105,7 @@ class TestDistributed(unittest.TestCase):
         self.hbase_toolkit_location = os.environ['STREAMS_HBASE_TOOLKIT']
  
      # ------------------------------------
-    @unittest.skipIf(hadoop_host_port_env_var() == False, "HADOOP_HOST_PORT environment variable.")
+    @unittest.skipIf(((hadoop_host_port_env_var()== False and site_xml_env_var()== False))== True, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
     def test_hbase_scan(self):
         topo = Topology('test_hbase_scan')
 
@@ -110,40 +114,45 @@ class TestDistributed(unittest.TestCase):
  
         topo = Topology()
 
-        scanned_rows = hbase.scan(topo, table_name='streamsSample_lotr', max_versions=1 , init_delay=2)
-        scanned_rows.print()
+        if (hbase.generate_hbase_site_xml(topo)):
+            tester = Tester(topo)
+            scanned_rows = hbase.scan(topo, table_name='streamsSample_lotr', max_versions=1 , init_delay=2)
+            scanned_rows.print()
+            tester.tuple_count(scanned_rows, 2, exact=False)
 
+            cfg = {}
+            job_config = streamsx.topology.context.JobConfig(tracing='info')
+            job_config.add(cfg)
+            cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
 
-        tester = Tester(topo)
-        tester.tuple_count(scanned_rows, 2, exact=False)
+            # Run the test
+            tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+        else:
+            print("hbase_site_xml file doesn't exist")
 
-        cfg = {}
-        job_config = streamsx.topology.context.JobConfig(tracing='info')
-        job_config.add(cfg)
-        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
-
-        # Run the test
-        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+    @unittest.skipIf(((hadoop_host_port_env_var()== False and site_xml_env_var()== False))== True, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
 
     def test_hbase_get(self):
         topo = Topology('test_hbase_get')
 
         if self.hbase_toolkit_location is not None:
             tk.add_toolkit(topo, self.hbase_toolkit_location)
-        s = _create_stream_for_get(topo) 
-        get_rows = hbase.get(s, table_name='streamsSample_lotr', row_attr_name='who')
-        get_rows.print()
 
+        if (hbase.generate_hbase_site_xml(topo)):
+            s = _create_stream_for_get(topo) 
+            tester = Tester(topo)
+            get_rows = hbase.get(s, table_name='streamsSample_lotr', row_attr_name='who')
+            get_rows.print()
 
-        tester = Tester(topo)
-        tester.tuple_count(get_rows, 1, exact=False)
-#        tester.run_for(60)
+            tester.tuple_count(get_rows, 2, exact=False)
+            # tester.run_for(60)
 
-        cfg = {}
-        job_config = streamsx.topology.context.JobConfig(tracing='info')
-        job_config.add(cfg)
-        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
-
-        # Run the test
-        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+            cfg = {}
+            job_config = streamsx.topology.context.JobConfig(tracing='info')
+            job_config.add(cfg)
+            cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+            # Run the test
+            tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+        else:
+            print("hbase_site_xml file doesn't exist")
 

@@ -18,6 +18,12 @@ HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstri
 ``'tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>'``
 """
 
+HBASEGetOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring value, rstring infoType, rstring requestedDetail>')
+"""Structured output schema of the get response tuple. This schema is the output schema of the get method.
+
+``'tuple<rstring row, rstring value, rstring infoType, rstring requestedDetail>'``
+"""
+
 HBASEPutOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring value, rstring infoType, rstring requestedDetail>')
 """Structured output schema of the get response tuple. This schema is the output schema of the get method.
 
@@ -25,28 +31,51 @@ HBASEPutOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstrin
 """
 
 
+def generate_hbase_site_xml(topo):
+    # The environment variable HADOOP_HOST_PORT has to be set.
+    host_port = ""
+    hbaseSiteXmlFile = ""
+    try:  
+        host_port=os.environ['HADOOP_HOST_PORT']
+    except KeyError: 
+        print ("")
 
-def _generate_hbase_site_xml():
-    host_port = os.environ['HADOOP_HOST_PORT']
-    HostPort = host_port.split(":", 1)
-    print ("host = " + HostPort[0] + " port = " + HostPort[1])
-    host = HostPort[0]
-    port = HostPort[1]
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    hbaseSiteTemplate=script_dir + '/hbase-site.xml.temp'
-    hbaseSite=gettempdir()+'/hbase-site.xml'
-    # reads the hbase-site.xml.temp and replase the host and port
-    with open(hbaseSiteTemplate) as f:
-        newText=f.read().replace('HOST_NAME', host)
-        newText=newText.replace('PORT', port)
+    if (len(host_port) > 1) :
+        HostPort = host_port.split(":", 1)
+        host = HostPort[0]
+        port = HostPort[1]
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        hbaseSiteTemplate=script_dir + '/hbase-site.xml.temp'
+        hbaseSite=gettempdir()+'/hbase-site.xml'
+
+        # reads the hbase-site.xml.temp and replase the host and port
+        with open(hbaseSiteTemplate) as f:
+            newText=f.read().replace('HOST_NAME', host)
+            newText=newText.replace('PORT', port)
     
-    # creates a new file hbase-site.xml file with new host and port values
-    with open(hbaseSite, "w") as f:
-        f.write(newText)
-    print ("hbaseSite: " + hbaseSite)
-    return hbaseSite
+        # creates a new file hbase-site.xml file with new host and port values
+        with open(hbaseSiteXmlFile, "w") as f:
+            f.write(newText)
+        print ("HBase configuration xml file: " + hbaseSiteXmlFile + "   host: " + host + "   port: " + port)
+    else:
+        try:  
+           hbaseSiteXmlFile=os.environ['HBASE_SITE_XML']
+           print ("HBase configuration xml file: " + hbaseSiteXmlFile)  
+        except KeyError: 
+            print ("")
 
-
+    if (len(hbaseSiteXmlFile) > 2) :
+        if os.path.exists(hbaseSiteXmlFile):
+            # add the HBase configuration file (hbase-site.xml) to the 'etc' directory in budel
+            topo.add_file_dependency(hbaseSiteXmlFile, 'etc')
+            return True
+        else:
+            raise AssertionError("The configuration file " + hbaseSiteXmlFile + " does'nt exists'")
+            return False
+    else:
+        print ("Please set one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
+        raise AssertionError("HADOOP_HOST_PORT or HBASE_SITE_XML are not set.")
+        return False
 
 
 def _check_time_param(time_value, parameter_name):
@@ -79,31 +108,31 @@ def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
         Output Stream containing the row numResults and values. It is a structured streams schema.
     """
 
-    _op = _HBASEScan(topology, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
-    hbaseSite=_generate_hbase_site_xml()
+    if (generate_hbase_site_xml(topology)):
+        _op = _HBASEScan(topology, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
     # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
-    topology.add_file_dependency(hbaseSite, 'etc')
-    _op.params['hbaseSite'] = "etc/hbase-site.xml"
+    #    topology.add_file_dependency(hbaseSite, 'etc')
+        _op.params['hbaseSite'] = "etc/hbase-site.xml"
     
-    if init_delay is not None:
-        _op.params['initDelay'] = streamsx.spl.types.float64(_check_time_param(init_delay, 'init_delay'))
+        if init_delay is not None:
+            _op.params['initDelay'] = streamsx.spl.types.float64(_check_time_param(init_delay, 'init_delay'))
 
-    _op.params['maxVersions'] = 0
+        _op.params['maxVersions'] = 0
 
-    if max_versions is not None:
-        _op.params['maxVersions'] = max_versions
+        if max_versions is not None:
+            _op.params['maxVersions'] = max_versions
 
-    _op.params['outAttrName'] = "value" 
-    _op.params['outputCountAttr'] = "numResults"
+        _op.params['outAttrName'] = "value" 
+        _op.params['outputCountAttr'] = "numResults"
 
-    return _op.outputs[0]
+        return _op.outputs[0]
 
 
 def get(stream, table_name, row_attr_name, name=None):
     """get tuples from a HBASE table and delivers the number of results, rows and values in output stream.
     
     The output streams has to be defined as StreamSchema.
-
+#ef2929
     Args:
         topology(Topology): Topology to contain the returned stream.
         outputSchema(Schema): output stream schema. It is a structured streams schema with row , numResult, columnFamily, columnQualifier and value.
@@ -116,25 +145,20 @@ def get(stream, table_name, row_attr_name, name=None):
     Returns:
         Output Stream containing the row numResults and values. It is a structured streams schema.
     """
-
-    _op = _HBASEGet(stream, tableName=table_name, rowAttrName=row_attr_name, schema=HBASEPutOutputSchema, name=name)
-    hbaseSite=_generate_hbase_site_xml()
-    # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
-    stream.topology.add_file_dependency(hbaseSite, 'etc')
-    _op.params['hbaseSite'] = "etc/hbase-site.xml"
+    if (generate_hbase_site_xml(stream.topology)):
+        _op = _HBASEGet(stream, tableName=table_name, rowAttrName=row_attr_name, schema=HBASEGetOutputSchema, name=name)
+        # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
+        # stream.topology.add_file_dependency(hbaseSite, 'etc')
+        _op.params['hbaseSite'] = "etc/hbase-site.xml"
     
-    _op.params['outAttrName'] = "value" 
-    _op.params['columnFamilyAttrName'] = "infoType" 
-    _op.params['columnQualifierAttrName'] = "requestedDetail" 
-    _op.params['outputCountAttr'] = "numResults"
+        _op.params['outAttrName'] = "value" 
+        _op.params['columnFamilyAttrName'] = "infoType" 
+        _op.params['columnQualifierAttrName'] = "requestedDetail" 
+        _op.params['outputCountAttr'] = "numResults"
+        return _op.outputs[0]
 
 
-
-#    _op.params['outputCountAttr'] = "numResults"
-
-    return _op.outputs[0]
-
-def put(topology, table_name, name=None):
+def put(stream, table_name, row_attr_name, colF, colQ, value, name=None):
     """Scans a HBASE table and delivers the number of results, rows and values in output stream.
     
     The output streams has to be defined as StreamSchema.
@@ -152,14 +176,40 @@ def put(topology, table_name, name=None):
         Output Stream containing the row numResults and values. It is a structured streams schema.
     """
 
-    _op = _HBASEPut(topology, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
-    hbaseSite=_generate_hbase_site_xml()
+    _op = _HBASEPut(topology, tableName=table_name, rowAttrName=row_attr_name, columnFamilyAttrName=colF, columnQualifierAttrName=colQ, valueAttrName=value, schema=HBASEScanOutputSchema, name=name)
+    generate_hbase_site_xml(stream.topology)
     # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
-    topology.add_file_dependency(hbaseSite, 'etc')
+    # topology.add_file_dependency(hbaseSite, 'etc')
     _op.params['hbaseSite'] = "etc/hbase-site.xml"
     
-    _op.params['outAttrName'] = "value" 
-    _op.params['outputCountAttr'] = "numResults"
+    _op.params['successAttr'] = "success" 
+
+    return _op.outputs[0]
+
+def delete(stream, table_name, row_attr_name, colF, colQ, value, name=None):
+    """Scans a HBASE table and delivers the number of results, rows and values in output stream.
+    
+    The output streams has to be defined as StreamSchema.
+
+    Args:
+        topology(Topology): Topology to contain the returned stream.
+        outputSchema(Schema): output stream schema. It is a structured streams schema with row , numResult, columnFamily, columnQualifier and value.
+        for example:
+        HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
+        max_versions(int32): specifies the maximum number of versions that the operator returns. It defaults to a value of one. A value of 0 indicates that the operator gets all versions. 
+        init_delay(int|float|datetime.timedelta): The time to wait in seconds before the operator scans the directory for the first time. If not set, then the default value is 0.
+        name(str): Source name in the Streams context, defaults to a generated name.
+
+    Returns:
+        Output Stream containing the row numResults and values. It is a structured streams schema.
+    """
+
+    _op = _HBASEDelete(topology, tableName=table_name, rowAttrName=row_attr_name, columnFamilyAttrName=colF, columnQualifierAttrName=colQ, valueAttrName=value, schema=HBASEScanOutputSchema, name=name)
+    generate_hbase_site_xml(stream.topology)
+    # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
+    _op.params['hbaseSite'] = "etc/hbase-site.xml"
+    
+    _op.params['successAttr'] = "success" 
 
     return _op.outputs[0]
 

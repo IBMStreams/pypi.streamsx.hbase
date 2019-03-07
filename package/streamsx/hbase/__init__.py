@@ -69,5 +69,5 @@ a file to HBASE. Scan for created file on HBASE and read the content::
 
 __version__='1.0.0'
 
-__all__ = ['scan', 'get', 'put']
-from streamsx.hbase._hbase import scan, get, put
+__all__ = ['generate_hbase_site_xml', 'scan', 'get', 'put', 'delete']
+from streamsx.hbase._hbase import generate_hbase_site_xml, scan, get, put, delete
