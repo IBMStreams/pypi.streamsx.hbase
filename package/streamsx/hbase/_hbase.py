@@ -7,9 +7,7 @@ import os
 from tempfile import gettempdir
 import streamsx.spl.op
 import streamsx.spl.types
-from streamsx.topology.schema import CommonSchema, StreamSchema
-from streamsx.spl.types import rstring
-from urllib.parse import urlparse
+from streamsx.topology.schema import StreamSchema
 
 
 HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
@@ -46,13 +44,14 @@ def generate_hbase_site_xml(topo):
         port = HostPort[1]
         script_dir = os.path.dirname(os.path.realpath(__file__))
         hbaseSiteTemplate=script_dir + '/hbase-site.xml.temp'
-        hbaseSite=gettempdir()+'/hbase-site.xml'
+        hbaseSiteXmlFile=gettempdir()+'/hbase-site.xml'
 
         # reads the hbase-site.xml.temp and replase the host and port
         with open(hbaseSiteTemplate) as f:
             newText=f.read().replace('HOST_NAME', host)
             newText=newText.replace('PORT', port)
     
+        
         # creates a new file hbase-site.xml file with new host and port values
         with open(hbaseSiteXmlFile, "w") as f:
             f.write(newText)
@@ -176,7 +175,7 @@ def put(stream, table_name, row_attr_name, colF, colQ, value, name=None):
         Output Stream containing the row numResults and values. It is a structured streams schema.
     """
 
-    _op = _HBASEPut(topology, tableName=table_name, rowAttrName=row_attr_name, columnFamilyAttrName=colF, columnQualifierAttrName=colQ, valueAttrName=value, schema=HBASEScanOutputSchema, name=name)
+    _op = _HBASEPut(stream, tableName=table_name, rowAttrName=row_attr_name, columnFamilyAttrName=colF, columnQualifierAttrName=colQ, valueAttrName=value, schema=HBASEScanOutputSchema, name=name)
     generate_hbase_site_xml(stream.topology)
     # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
     # topology.add_file_dependency(hbaseSite, 'etc')
@@ -204,7 +203,7 @@ def delete(stream, table_name, row_attr_name, colF, colQ, value, name=None):
         Output Stream containing the row numResults and values. It is a structured streams schema.
     """
 
-    _op = _HBASEDelete(topology, tableName=table_name, rowAttrName=row_attr_name, columnFamilyAttrName=colF, columnQualifierAttrName=colQ, valueAttrName=value, schema=HBASEScanOutputSchema, name=name)
+    _op = _HBASEDelete(stream, tableName=table_name, rowAttrName=row_attr_name, columnFamilyAttrName=colF, columnQualifierAttrName=colQ, valueAttrName=value, schema=HBASEScanOutputSchema, name=name)
     generate_hbase_site_xml(stream.topology)
     # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
     _op.params['hbaseSite'] = "etc/hbase-site.xml"
@@ -223,7 +222,6 @@ class _HBASEGet(streamsx.spl.op.Invoke):
         topology = stream.topology
         kind="com.ibm.streamsx.hbase::HBASEGet"
         inputs=stream
-        schemas=schema
         params = dict()
         if rowAttrName is not None:
             params['rowAttrName'] = rowAttrName
@@ -265,7 +263,6 @@ class _HBASEScan(streamsx.spl.op.Invoke):
 #        topology = stream.topology
         kind="com.ibm.streamsx.hbase::HBASEScan"
         inputs=None
-        schemas=schema
         params = dict()
         if authKeytab is not None:
             params['authKeytab'] = authKeytab
@@ -316,7 +313,7 @@ class _HBASEPut(streamsx.spl.op.Invoke):
     def __init__(self, stream, schema=None, rowAttrName=None, valueAttrName=None, authKeytab=None, authPrincipal=None, batchSize=None, checkAttrName=None, columnFamilyAttrName=None, columnQualifierAttrName=None, enableBuffer=None, hbaseSite=None, staticColumnFamily=None, staticColumnQualifier=None, successAttr=None, tableName=None, tableNameAttribute=None, name=None):
         kind="com.ibm.streamsx.hbase::HBASEPut"
         inputs=stream
-        schemas=schema
+        topology = stream.topology
         params = dict()
         if rowAttrName is not None:
             params['rowAttrName'] = rowAttrName
@@ -361,7 +358,6 @@ class _HBASEDelete(streamsx.spl.op.Invoke):
         topology = stream.topology
         kind="com.ibm.streamsx.hbase::HBASEDelete"
         inputs=stream
-        schemas=schema
         params = dict()
         if rowAttrName is not None:
             params['rowAttrName'] = rowAttrName
@@ -400,11 +396,10 @@ class _HBASEDelete(streamsx.spl.op.Invoke):
 # Optional parameters: authKeytab, authPrincipal, columnFamilyAttrName, columnQualifierAttrName, hbaseSite, 
 # increment, incrementAttrName, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute
 class _HBASEIncrement(streamsx.spl.op.Invoke):
-    def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, columnFamilyAttrName=None, columnQualifierAttrName=None, hbaseSite=None,  increment=None, incrementAttrName=None, staticColumnFamily=None, staticColumnQualifier=None, tableName=None, tableNameAttribute=None, name=None):
+    def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, columnFamilyAttrName=None, columnQualifierAttrName=None, deleteAllVersions=None, hbaseSite=None,  increment=None, incrementAttrName=None, staticColumnFamily=None, staticColumnQualifier=None, successAttr=None, tableName=None, tableNameAttribute=None, name=None):
         topology = stream.topology
         kind="com.ibm.streamsx.hbase::HBASEIncrement"
         inputs=stream
-        schemas=schema
         params = dict()
         if rowAttrName is not None:
             params['rowAttrName'] = rowAttrName

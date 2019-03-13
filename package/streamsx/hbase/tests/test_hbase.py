@@ -1,17 +1,17 @@
+# coding=utf-8
+# Licensed Materials - Property of IBM
+# Copyright IBM Corp. 2019
 
 import streamsx.hbase as hbase
 
-from streamsx.topology.topology import *
+from streamsx.topology.topology import streamsx, Topology
 from streamsx.topology.tester import Tester
-from streamsx.topology.schema import CommonSchema, StreamSchema
-import streamsx.spl.op as op
+from streamsx.topology.schema import StreamSchema
 import streamsx.spl.toolkit as tk
-import streamsx.rest as sr
 
 import unittest
-import datetime
 import os
-import json
+from datetime import time
 
 ##
 ## Test assumptions
@@ -19,7 +19,7 @@ import json
 ## IBM Streams instance running
 ## HBASE server running
 ## The hostname and port of HBASE server is referenced by HADOOP_HOST_PORT environment variable.
-## The core-site.xml is referenced by HBASE_SITE_XML environment variable.
+## Or the core-site.xml is referenced by HBASE_SITE_XML environment variable.
 ## HBASE toolkit location is given by STREAMS_HBASE_TOOLKIT environment variable.
 ##
 def toolkit_env_var():
@@ -84,7 +84,7 @@ class StringData(object):
 
 class TestParams(unittest.TestCase):
 
-    @unittest.skipIf(((hadoop_host_port_env_var()== False and site_xml_env_var()== False))== True, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
+    @unittest.skipIf(((hadoop_host_port_env_var() or site_xml_env_var()))== False, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
     def test_hadoop_host_port(self):
         topo = Topology()
         hbase.scan(topo, table_name='streamsSample_lotr', max_versions=3)
@@ -105,15 +105,13 @@ class TestDistributed(unittest.TestCase):
         self.hbase_toolkit_location = os.environ['STREAMS_HBASE_TOOLKIT']
  
      # ------------------------------------
-    @unittest.skipIf(((hadoop_host_port_env_var()== False and site_xml_env_var()== False))== True, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
+    @unittest.skipIf(((hadoop_host_port_env_var() or site_xml_env_var()))== False, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
     def test_hbase_scan(self):
         topo = Topology('test_hbase_scan')
 
         if self.hbase_toolkit_location is not None:
             tk.add_toolkit(topo, self.hbase_toolkit_location)
  
-        topo = Topology()
-
         if (hbase.generate_hbase_site_xml(topo)):
             tester = Tester(topo)
             scanned_rows = hbase.scan(topo, table_name='streamsSample_lotr', max_versions=1 , init_delay=2)
