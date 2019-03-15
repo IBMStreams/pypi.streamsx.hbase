@@ -38,7 +38,7 @@ For example:
 ```
 export HADOOP_HOST_PORT=hdp264.fyre.ibm.com:8020
 ```
-The package creates a HBase configiration file (hbase-site.xml) from a template.
+The package creates a HBase configuration file (hbase-site.xml) from a template.
 
 And replaces the hadoop server name and the port with values from environment variable `HADOOP_HOST_PORT`.
 
@@ -55,6 +55,23 @@ For example:
 export STREAMS_HBASE_TOOLKIT=/opt/ibm/InfoSphere_Streams/4.3.0.0/toolkits/com.ibm.streamsx.hbase
 ```
 
+### Preparation
+
+Before you begin with test, you have to create a test table on your HBASE database.
+
+login as hbase user on your HBASE server.
+
+```
+hbase shell
+....
+create 'streamsSample_lotr','appearance','location'
+```
+
+The first test puts some rows into table via HBASEPut operator from streamsx.hbase toolkit.
+
+In the next test the HBASEGet operator delivers the selected rows from table.
+
+At the end the HBASEScan returns all rows for table.
 
 
 ### Test parameters only
