@@ -57,6 +57,17 @@ export STREAMS_HBASE_TOOLKIT=/opt/ibm/InfoSphere_Streams/4.3.0.0/toolkits/com.ib
 
 ### Preparation
 
+
+#### Installation of streamsx
+
+```
+pip install streamsx
+pip install urllib3
+pip install --upgrade pyOpenSSL
+```
+
+#### Create table
+
 Before you begin with test, you have to create a test table on your HBASE database.
 
 login as hbase user on your HBASE server.
