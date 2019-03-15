@@ -39,6 +39,7 @@ For example:
 export HADOOP_HOST_PORT=hdp264.fyre.ibm.com:8020
 ```
 The package creates a HBase configiration file (hbase-site.xml) from a template.
+
 And replaces the hadoop server name and the port with values from environment variable `HADOOP_HOST_PORT`.
 
 Alternative the "hbase-site.xml" file can be specified for testing with the environment variable `HBASE_SITE_XML`.
