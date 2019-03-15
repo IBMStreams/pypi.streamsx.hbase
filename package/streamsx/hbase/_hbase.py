@@ -22,10 +22,10 @@ HBASEGetOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstrin
 ``'tuple<rstring row, rstring value, rstring infoType, rstring requestedDetail>'``
 """
 
-HBASEPutOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring value, rstring infoType, rstring requestedDetail>')
-"""Structured output schema of the get response tuple. This schema is the output schema of the get method.
+HBASEPutOutputSchema = StreamSchema('tuple<boolean success>')
+"""Structured output schema of the put response tuple. This schema is the output schema of the put method.
 
-``'tuple<rstring row, rstring value, rstring infoType, rstring requestedDetail>'``
+``'tuple<boolean  success>'``
 """
 
 
@@ -96,15 +96,13 @@ def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
 
     Args:
         topology(Topology): Topology to contain the returned stream.
-        outputSchema(Schema): output stream schema. It is a structured streams schema with row , numResult, columnFamily, columnQualifier and value.
-        for example:
-        HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
         max_versions(int32): specifies the maximum number of versions that the operator returns. It defaults to a value of one. A value of 0 indicates that the operator gets all versions. 
         init_delay(int|float|datetime.timedelta): The time to wait in seconds before the operator scans the directory for the first time. If not set, then the default value is 0.
         name(str): Source name in the Streams context, defaults to a generated name.
 
     Returns:
         Output Stream containing the row numResults and values. It is a structured streams schema.
+        HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
     """
 
     if (generate_hbase_site_xml(topology)):
@@ -130,19 +128,15 @@ def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
 def get(stream, table_name, row_attr_name, name=None):
     """get tuples from a HBASE table and delivers the number of results, rows and values in output stream.
     
-    The output streams has to be defined as StreamSchema.
-#ef2929
     Args:
-        topology(Topology): Topology to contain the returned stream.
-        outputSchema(Schema): output stream schema. It is a structured streams schema with row , numResult, columnFamily, columnQualifier and value.
-        for example:
-        HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
-        max_versions(int32): specifies the maximum number of versions that the operator returns. It defaults to a value of one. A value of 0 indicates that the operator gets all versions. 
-        init_delay(int|float|datetime.timedelta): The time to wait in seconds before the operator scans the directory for the first time. If not set, then the default value is 0.
+        stream: contain the input stream.
+        table_name: The name of hbase table.
+        row_attr_name(rstring): This parameter specifies the name of the attribute of the output port in which the operator puts the retrieval results. The data type for the attribute depends on whether you specified a columnFamily or columnQualifier.     
         name(str): Source name in the Streams context, defaults to a generated name.
 
     Returns:
         Output Stream containing the row numResults and values. It is a structured streams schema.
+        HBASEGetOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring value, rstring infoType, rstring requestedDetail>')
     """
     if (generate_hbase_site_xml(stream.topology)):
         _op = _HBASEGet(stream, tableName=table_name, rowAttrName=row_attr_name, schema=HBASEGetOutputSchema, name=name)
@@ -157,59 +151,57 @@ def get(stream, table_name, row_attr_name, name=None):
         return _op.outputs[0]
 
 
-def put(stream, table_name, row_attr_name, colF, colQ, value, name=None):
-    """Scans a HBASE table and delivers the number of results, rows and values in output stream.
+def put(stream, table_name, name=None):
+    """put a row which delivers in streams as tuple into a HBASE table.
     
     The output streams has to be defined as StreamSchema.
 
     Args:
-        topology(Topology): Topology to contain the returned stream.
-        outputSchema(Schema): output stream schema. It is a structured streams schema with row , numResult, columnFamily, columnQualifier and value.
-        for example:
-        HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
-        max_versions(int32): specifies the maximum number of versions that the operator returns. It defaults to a value of one. A value of 0 indicates that the operator gets all versions. 
-        init_delay(int|float|datetime.timedelta): The time to wait in seconds before the operator scans the directory for the first time. If not set, then the default value is 0.
+        stream: contain the input stream.
+        table_name: The name of hbase table,
         name(str): Source name in the Streams context, defaults to a generated name.
 
     Returns:
-        Output Stream containing the row numResults and values. It is a structured streams schema.
+        Output Stream containing the result sucesss.
+        HBASEScanOutputSchema = StreamSchema('tuple<boolen success>')
     """
 
-    _op = _HBASEPut(stream, tableName=table_name, rowAttrName=row_attr_name, columnFamilyAttrName=colF, columnQualifierAttrName=colQ, valueAttrName=value, schema=HBASEScanOutputSchema, name=name)
-    generate_hbase_site_xml(stream.topology)
-    # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
-    # topology.add_file_dependency(hbaseSite, 'etc')
-    _op.params['hbaseSite'] = "etc/hbase-site.xml"
-    
-    _op.params['successAttr'] = "success" 
-
+    if (generate_hbase_site_xml(stream.topology)):
+        _op = _HBASEPut(stream, tableName=table_name, schema=HBASEPutOutputSchema, name=name)
+        # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
+        _op.params['hbaseSite'] = "etc/hbase-site.xml"
+        _op.params['rowAttrName'] = "character" ;
+        _op.params['valueAttrName'] = "value" 
+        _op.params['columnFamilyAttrName'] = "colF" 
+        _op.params['columnQualifierAttrName'] = "colQ" 
+        _op.params['successAttr'] = "success"
+        
     return _op.outputs[0]
 
-def delete(stream, table_name, row_attr_name, colF, colQ, value, name=None):
-    """Scans a HBASE table and delivers the number of results, rows and values in output stream.
+def delete(stream, table_name, name=None):
+    """delete a row which delivers in streams as tuple from a HBASE table.
     
     The output streams has to be defined as StreamSchema.
 
     Args:
-        topology(Topology): Topology to contain the returned stream.
-        outputSchema(Schema): output stream schema. It is a structured streams schema with row , numResult, columnFamily, columnQualifier and value.
-        for example:
-        HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
-        max_versions(int32): specifies the maximum number of versions that the operator returns. It defaults to a value of one. A value of 0 indicates that the operator gets all versions. 
-        init_delay(int|float|datetime.timedelta): The time to wait in seconds before the operator scans the directory for the first time. If not set, then the default value is 0.
+        stream: contain the input stream.
+        table_name: The name of hbase table,
         name(str): Source name in the Streams context, defaults to a generated name.
 
     Returns:
-        Output Stream containing the row numResults and values. It is a structured streams schema.
+        Output Stream containing the result sucesss.
+        HBASEScanOutputSchema = StreamSchema('tuple<boolen success>')
     """
 
-    _op = _HBASEDelete(stream, tableName=table_name, rowAttrName=row_attr_name, columnFamilyAttrName=colF, columnQualifierAttrName=colQ, valueAttrName=value, schema=HBASEScanOutputSchema, name=name)
-    generate_hbase_site_xml(stream.topology)
-    # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
-    _op.params['hbaseSite'] = "etc/hbase-site.xml"
-    
-    _op.params['successAttr'] = "success" 
-
+    if (generate_hbase_site_xml(stream.topology)):
+        _op = _HBASEDelete(stream, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
+        _op.params['hbaseSite'] = "etc/hbase-site.xml"
+        _op.params['rowAttrName'] = "character" ;
+        _op.params['valueAttrName'] = "value" 
+        _op.params['columnFamilyAttrName'] = "colF" 
+        _op.params['columnQualifierAttrName'] = "colQ" 
+        _op.params['successAttr'] = "success"
+ 
     return _op.outputs[0]
 
 
