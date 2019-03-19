@@ -43,6 +43,7 @@ The package creates a HBase configuration file (hbase-site.xml) from a template.
 And replaces the hadoop server name and the port with values from environment variable `HADOOP_HOST_PORT`.
 
 Alternative the "hbase-site.xml" file can be specified for testing with the environment variable `HBASE_SITE_XML`.
+
 For example:
 ```
 export HBASE_SITE_XML=/usr/hdp/current/hbase-client/conf/hbase-site.xml
@@ -105,5 +106,4 @@ Required envionment variable for the `com.ibm.streamsx.hbase` toolkit  location:
 cd package
 python3 -u -m unittest streamsx.hbase.tests.test_hbase.TestDistributed
 ```
-
 
