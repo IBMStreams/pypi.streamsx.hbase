@@ -101,7 +101,8 @@ def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
         name(str): Source name in the Streams context, defaults to a generated name.
 
     Returns:
-        Output Stream containing the row numResults and values. It is a structured streams schema.
+        StreamSchema: Output Stream containing the row numResults and values. It is a structured streams schema.
+        
         HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
     """
 
@@ -135,7 +136,8 @@ def get(stream, table_name, row_attr_name, name=None):
         name(str): Source name in the Streams context, defaults to a generated name.
 
     Returns:
-        Output Stream containing the row numResults and values. It is a structured streams schema.
+        StreamSchema: Output Stream containing the row numResults and values. It is a structured streams schema.
+        
         HBASEGetOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring value, rstring infoType, rstring requestedDetail>')
     """
     if (generate_hbase_site_xml(stream.topology)):
@@ -162,7 +164,8 @@ def put(stream, table_name, name=None):
         name(str): Source name in the Streams context, defaults to a generated name.
 
     Returns:
-        Output Stream containing the result sucesss.
+        StreamSchema: Output Stream containing the result sucesss.
+        
         HBASEScanOutputSchema = StreamSchema('tuple<boolen success>')
     """
 
@@ -189,7 +192,8 @@ def delete(stream, table_name, name=None):
         name(str): Source name in the Streams context, defaults to a generated name.
 
     Returns:
-        Output Stream containing the result sucesss.
+        StreamSchema: Output Stream containing the result sucesss.
+        
         HBASEScanOutputSchema = StreamSchema('tuple<boolen success>')
     """
 

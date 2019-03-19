@@ -1,8 +1,8 @@
 streamsx.hbase package
-#####################
+######################
 
 IBM Streams HBASE integration
-============================
+==============================
 
 For details of implementing applications in Python
 for IBM Streams and the Streaming Analytics service
@@ -18,7 +18,7 @@ This package exposes SPL operators in the `com.ibm.streamsx.hbase <https://ibmst
 
 
 Indices and tables
-==================
+===================
 
 * :ref:`genindex`
 * :ref:`modindex`

@@ -1,11 +1,10 @@
 Overview
 ========
 
-Provides functions to access files on HBASE. For example, connect to IBM Analytics Engine on IBM Cloud.
+Provides functions to access files on HBASE. For example, connect to Hortonworks (HDP).
 This package exposes the `com.ibm.streamsx.hbase` toolkit as Python methods.
 
 * `IBM Streaming Analytics <https://www.ibm.com/cloud/streaming-analytics>`_
-* `IBM Analytics Engine <https://www.ibm.com/cloud/analytics-engine>`_
 
 
 Sample
@@ -19,25 +18,26 @@ a file to HBASE. Scan for created file on HBASE and read the content::
     from streamsx.topology.context import submit
     import streamsx.hbase as hbase
 
-    credentials = json.load(credentials_analytics_engine_service)
+    topo = Topology('test_hbase_scan')
 
-    topo = Topology('HBASEHelloWorld')
+    if self.hbase_toolkit_location is not None:
+        tk.add_toolkit(topo, self.hbase_toolkit_location)
+ 
+        if (hbase.generate_hbase_site_xml(topo)):
+            tester = Tester(topo)
+            scanned_rows = hbase.scan(topo, table_name=_get_table_name(), max_versions=1 , init_delay=2)
+            scanned_rows.print()
+            tester.tuple_count(scanned_rows, 2, exact=False)
 
-    to_hbase = topo.source(['Hello', 'World!'])
-    to_hbase = to_hbase.as_string()
-   
-    # Write a stream to HBASE
-    hbase.write(to_hbase, credentials=credentials, file='/sample/hw.txt')
+            cfg = {}
+            job_config = streamsx.topology.context.JobConfig(tracing='info')
+            job_config.add(cfg)
+            cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
 
-    scanned = hbase.scan(topo, credentials=credentials, directory='/sample', init_delay=10)
-    
-    # read text file line by line
-    r = hbase.read(scanned, credentials=credentials)
-    
-    # print each line (tuple)
-    r.print()
-
-    submit('STREAMING_ANALYTICS_SERVICE', topo)
+            # Run the test
+            tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+        else:
+            print("hbase_site_xml file doesn't exist")
 
 
 Documentation
