@@ -4,8 +4,6 @@ Overview
 Provides functions to access files on HBASE. For example, connect to Hortonworks (HDP).
 This package exposes the `com.ibm.streamsx.hbase` toolkit as Python methods.
 
-* `IBM Streaming Analytics <https://www.ibm.com/cloud/streaming-analytics>`_
-
 
 Sample
 ======

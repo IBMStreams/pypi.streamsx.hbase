@@ -8,8 +8,6 @@ Overview
 
 Provides functions to access files on HBASE.
 
-Use this package with the following services on IBM Cloud:
-
 
 HBASE configuration file
 +++++++++++++++++++++++++

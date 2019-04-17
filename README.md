@@ -100,10 +100,16 @@ python3 -u -m unittest streamsx.hbase.tests.test_hbase.TestParams
 
 This test requires STREAMS_INSTALL set and a running Streams instance.
 
-Required envionment variable for the `com.ibm.streamsx.hbase` toolkit  location: `STREAMS_HDFS_TOOLKIT`
+Required envionment variable for the `com.ibm.streamsx.hbase` toolkit  location: `STREAMS_HBASE_TOOLKIT`
 
 ```
 cd package
 python3 -u -m unittest streamsx.hbase.tests.test_hbase.TestDistributed
 ```
+
+or 
+
+    ant test
+
+
 
