@@ -195,3 +195,10 @@ class TestDistributed(unittest.TestCase):
             tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
         else:
             print("hbase_site_xml file doesn't exist")
+
+
+class TestICPRemote(TestDistributed):
+    def setUp(self):
+        Tester.setup_distributed(self)
+        self.hbase_toolkit_location = None
+
