@@ -1,7 +1,10 @@
+/.project
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+*.gz
 
 # C extensions
 *.so
@@ -102,3 +105,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+
+.DS_Store
+/**/.DS_Store
