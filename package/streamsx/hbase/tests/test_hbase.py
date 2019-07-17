@@ -15,13 +15,14 @@ from datetime import time
 
 ##
 ## Test assumptions
+## Before you start with test make sure that:
 ##
-## IBM Streams instance running
-## HBASE server running
-## The hostname and port of HBASE server is referenced by HADOOP_HOST_PORT environment variable.
-## Or the core-site.xml is referenced by HBASE_SITE_XML environment variable.
-## HBASE toolkit location is given by STREAMS_HBASE_TOOLKIT environment variable.
-## A table 'streamsSample_lotr'is exsit on your HBASE database.
+## - IBM Streams instance running
+## - HBASE server running 
+## - The hostname and the port of HBASE server is referenced by HADOOP_HOST_PORT environment variable.
+## - Or the "core-site.xml" is referenced by HBASE_SITE_XML environment variable.
+## - HBASE toolkit location is given by STREAMS_HBASE_TOOLKIT environment variable.
+## - A table 'streamsSample_lotr' is exsit on your HBASE database.
 ##    echo "create 'streamsSample_lotr','appearance','location'" | hbase shell
 ##
 
