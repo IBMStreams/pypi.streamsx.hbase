@@ -28,6 +28,13 @@ HBASEPutOutputSchema = StreamSchema('tuple<boolean success>')
 ``'tuple<boolean  success>'``
 """
 
+def _add_toolkit_dependency(topo):
+    # IMPORTANT: Dependency of this python wrapper to a specific toolkit version
+    # This is important when toolkit is not set with streamsx.spl.toolkit.add_toolkit (selecting toolkit from remote build service)
+    streamsx.spl.toolkit.add_toolkit_dependency(topo, 'com.ibm.streamsx.hbase', '[3.4.0,4.0.0)')
+
+
+
 
 def generate_hbase_site_xml(topo):
     # The environment variable HADOOP_HOST_PORT has to be set.
@@ -105,6 +112,8 @@ def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
         
         HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
     """
+    # check streamsx.hbase version
+    _add_toolkit_dependency(topology)
 
     if (generate_hbase_site_xml(topology)):
         _op = _HBASEScan(topology, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
@@ -140,6 +149,9 @@ def get(stream, table_name, row_attr_name, name=None):
         
         HBASEGetOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring value, rstring infoType, rstring requestedDetail>')
     """
+    # check streamsx.hbase version
+    _add_toolkit_dependency(stream.topology)
+
     if (generate_hbase_site_xml(stream.topology)):
         _op = _HBASEGet(stream, tableName=table_name, rowAttrName=row_attr_name, schema=HBASEGetOutputSchema, name=name)
         # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
@@ -169,6 +181,9 @@ def put(stream, table_name, name=None):
         HBASEScanOutputSchema = StreamSchema('tuple<boolen success>')
     """
 
+    # check streamsx.hbase version
+    _add_toolkit_dependency(stream.topology)
+
     if (generate_hbase_site_xml(stream.topology)):
         _op = _HBASEPut(stream, tableName=table_name, schema=HBASEPutOutputSchema, name=name)
         # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
@@ -196,6 +211,9 @@ def delete(stream, table_name, name=None):
         
         HBASEScanOutputSchema = StreamSchema('tuple<boolen success>')
     """
+
+    # check streamsx.hbase version
+    _add_toolkit_dependency(stream.topology)
 
     if (generate_hbase_site_xml(stream.topology)):
         _op = _HBASEDelete(stream, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
