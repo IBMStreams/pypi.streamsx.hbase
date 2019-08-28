@@ -58,7 +58,7 @@ the scanned rows::
     
 """
 
-__version__='1.1.0'
+__version__='1.2.0'
 
 __all__ = ['scan', 'get', 'put', 'delete']
 from streamsx.hbase._hbase import scan, get, put, delete
