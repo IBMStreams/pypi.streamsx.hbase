@@ -36,7 +36,7 @@ def _add_toolkit_dependency(topo):
 
 
 
-def generate_hbase_site_xml(topo):
+def _generate_hbase_site_xml(topo):
     # The environment variable HADOOP_HOST_PORT has to be set.
     host_port = ""
     hbaseSiteXmlFile = ""
@@ -115,7 +115,7 @@ def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
     # check streamsx.hbase version
     _add_toolkit_dependency(topology)
 
-    if (generate_hbase_site_xml(topology)):
+    if (_generate_hbase_site_xml(topology)):
         _op = _HBASEScan(topology, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
     # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
     #    topology.add_file_dependency(hbaseSite, 'etc')
@@ -152,7 +152,7 @@ def get(stream, table_name, row_attr_name, name=None):
     # check streamsx.hbase version
     _add_toolkit_dependency(stream.topology)
 
-    if (generate_hbase_site_xml(stream.topology)):
+    if (_generate_hbase_site_xml(stream.topology)):
         _op = _HBASEGet(stream, tableName=table_name, rowAttrName=row_attr_name, schema=HBASEGetOutputSchema, name=name)
         # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
         # stream.topology.add_file_dependency(hbaseSite, 'etc')
@@ -184,7 +184,7 @@ def put(stream, table_name, name=None):
     # check streamsx.hbase version
     _add_toolkit_dependency(stream.topology)
 
-    if (generate_hbase_site_xml(stream.topology)):
+    if (_generate_hbase_site_xml(stream.topology)):
         _op = _HBASEPut(stream, tableName=table_name, schema=HBASEPutOutputSchema, name=name)
         # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
         _op.params['hbaseSite'] = "etc/hbase-site.xml"
@@ -215,7 +215,7 @@ def delete(stream, table_name, name=None):
     # check streamsx.hbase version
     _add_toolkit_dependency(stream.topology)
 
-    if (generate_hbase_site_xml(stream.topology)):
+    if (_generate_hbase_site_xml(stream.topology)):
         _op = _HBASEDelete(stream, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
         _op.params['hbaseSite'] = "etc/hbase-site.xml"
         _op.params['rowAttrName'] = "character" ;

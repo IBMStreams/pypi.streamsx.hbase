@@ -126,23 +126,21 @@ class TestDistributed(unittest.TestCase):
         if self.hbase_toolkit_location is not None:
             tk.add_toolkit(topo, self.hbase_toolkit_location)
 
-        if (hbase.generate_hbase_site_xml(topo)):
-            s = _create_stream_for_put(topo) 
-            tester = Tester(topo)
-            get_rows = hbase.put(s, table_name=_get_table_name())
-            get_rows.print()
+        s = _create_stream_for_put(topo) 
+        tester = Tester(topo)
+        # hbase.put creates site.xml file with the use of environment variable HADOOP_HOST_PORT / HBASE_SITE_XML
+        get_rows = hbase.put(s, table_name=_get_table_name())
+        get_rows.print()
 
-            tester.tuple_count(get_rows, 2, exact=False)
-            # tester.run_for(60)
+        tester.tuple_count(get_rows, 2, exact=False)
+        # tester.run_for(60)
 
-            cfg = {}
-            job_config = streamsx.topology.context.JobConfig(tracing='info')
-            job_config.add(cfg)
-            cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
-            # Run the test
-            tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
-        else:
-            print("hbase_site_xml file doesn't exist")
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
 
  
     # -----------------------------------------------------------
@@ -153,26 +151,24 @@ class TestDistributed(unittest.TestCase):
         if self.hbase_toolkit_location is not None:
             tk.add_toolkit(topo, self.hbase_toolkit_location)
 
-        if (hbase.generate_hbase_site_xml(topo)):
-            s = _create_stream_for_get(topo) 
-            tester = Tester(topo)
-            get_rows = hbase.get(s, table_name=_get_table_name(), row_attr_name='who')
-            get_rows.print()
+        s = _create_stream_for_get(topo) 
+        tester = Tester(topo)
+        # hbase.get creates site.xml file with the use of environment variable HADOOP_HOST_PORT / HBASE_SITE_XML
+        get_rows = hbase.get(s, table_name=_get_table_name(), row_attr_name='who')
+        get_rows.print()
 
-            tester.tuple_count(get_rows, 2, exact=False)
-            # tester.run_for(60)
+        tester.tuple_count(get_rows, 2, exact=False)
+        # tester.run_for(60)
 
-            cfg = {}
-            job_config = streamsx.topology.context.JobConfig(tracing='info')
-            job_config.add(cfg)
-            cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
-            # Run the test
-            tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
-        else:
-            print("hbase_site_xml file doesn't exist")
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
 
 
-     # --------------------------------------------------------
+    # --------------------------------------------------------
     @unittest.skipIf(((hadoop_host_port_env_var() or site_xml_env_var()))== False, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
     def test_hbase_scan(self):
         topo = Topology('test_hbase_scan')
@@ -180,18 +176,24 @@ class TestDistributed(unittest.TestCase):
         if self.hbase_toolkit_location is not None:
             tk.add_toolkit(topo, self.hbase_toolkit_location)
  
-        if (hbase.generate_hbase_site_xml(topo)):
-            tester = Tester(topo)
-            scanned_rows = hbase.scan(topo, table_name=_get_table_name(), max_versions=1 , init_delay=2)
-            scanned_rows.print()
-            tester.tuple_count(scanned_rows, 2, exact=False)
+        tester = Tester(topo)
+        # hbase.scan creates site.xml file with the use of environment variable HADOOP_HOST_PORT / HBASE_SITE_XML
+        scanned_rows = hbase.scan(topo, table_name=_get_table_name(), max_versions=1 , init_delay=2)
+        scanned_rows.print()
+        tester.tuple_count(scanned_rows, 2, exact=False)
 
-            cfg = {}
-            job_config = streamsx.topology.context.JobConfig(tracing='info')
-            job_config.add(cfg)
-            cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
 
-            # Run the test
-            tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
-        else:
-            print("hbase_site_xml file doesn't exist")
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+
+
+
+class TestICPRemote(TestDistributed):
+    def setUp(self):
+        Tester.setup_distributed(self)
+        self.hbase_toolkit_location = None
+
