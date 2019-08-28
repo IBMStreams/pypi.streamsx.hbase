@@ -36,16 +36,32 @@ def _add_toolkit_dependency(topo):
 
 
 
-def _generate_hbase_site_xml(topo):
+def _generate_hbase_site_xml(topo, connection=None):
     # The environment variable HADOOP_HOST_PORT has to be set.
     host_port = ""
     hbaseSiteXmlFile = ""
-    try:  
-        host_port=os.environ['HADOOP_HOST_PORT']
-    except KeyError: 
-        print ("")
+    if connection is None:
+        # expect one of the environment variables HADOOP_HOST_PORT or HBASE_SITE_XML
+        try:  
+            host_port=os.environ['HADOOP_HOST_PORT']
+        except KeyError: 
+            host_port = ""
 
-    if (len(host_port) > 1) :
+        try:  
+            hbaseSiteXmlFile=os.environ['HBASE_SITE_XML']
+        except KeyError: 
+            hbaseSiteXmlFile = ""
+    else:
+        if isinstance(connection, dict): # check if dict is set
+            host_port = connection.get('host') + ':' + connection.get('port')
+        else:
+            if os.path.exists(connection): # check if filename is given
+                hbaseSiteXmlFile = connection
+            else:
+                if ':' in connection: # assume we have HOST:PORT as string
+                    host_port = connection
+
+    if (len(host_port) > 1):
         HostPort = host_port.split(":", 1)
         host = HostPort[0]
         port = HostPort[1]
@@ -63,25 +79,19 @@ def _generate_hbase_site_xml(topo):
         with open(hbaseSiteXmlFile, "w") as f:
             f.write(newText)
         print ("HBase configuration xml file: " + hbaseSiteXmlFile + "   host: " + host + "   port: " + port)
-    else:
-        try:  
-           hbaseSiteXmlFile=os.environ['HBASE_SITE_XML']
-           print ("HBase configuration xml file: " + hbaseSiteXmlFile)  
-        except KeyError: 
-            print ("")
 
-    if (len(hbaseSiteXmlFile) > 2) :
+
+    if (len(hbaseSiteXmlFile) > 2):
         if os.path.exists(hbaseSiteXmlFile):
-            # add the HBase configuration file (hbase-site.xml) to the 'etc' directory in budel
+            # add the HBase configuration file (hbase-site.xml) to the 'etc' directory in bundle
             topo.add_file_dependency(hbaseSiteXmlFile, 'etc')
+            print ("HBase configuration xml file " + hbaseSiteXmlFile + ' added to the application directory.')
             return True
         else:
-            raise AssertionError("The configuration file " + hbaseSiteXmlFile + " does'nt exists'")
-            return False
-    else:
-        print ("Please set one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
-        raise AssertionError("HADOOP_HOST_PORT or HBASE_SITE_XML are not set.")
-        return False
+            raise AssertionError("The configuration file " + hbaseSiteXmlFile + " doesn't exists'")
+
+    print ("Please set one of the environment variables HADOOP_HOST_PORT or HBASE_SITE_XML or apply the connection parameter")
+    raise AssertionError("Missing HADOOP_HOST_PORT or HBASE_SITE_XML or connection parameter.")
 
 
 def _check_time_param(time_value, parameter_name):
@@ -96,7 +106,7 @@ def _check_time_param(time_value, parameter_name):
     return result
 
 
-def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
+def scan(topology, table_name, max_versions=None, init_delay=None, connection=None, name=None):
     """Scans a HBASE table and delivers the number of results, rows and values in output stream.
     
     The output streams has to be defined as StreamSchema.
@@ -105,6 +115,7 @@ def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
         topology(Topology): Topology to contain the returned stream.
         max_versions(int32): specifies the maximum number of versions that the operator returns. It defaults to a value of one. A value of 0 indicates that the operator gets all versions. 
         init_delay(int|float|datetime.timedelta): The time to wait in seconds before the operator scans the directory for the first time. If not set, then the default value is 0.
+        connection(dict|filename|string): Specify the connection to HBASE either with a filename of a HBase configuration file or as string in format "HOST:PORT" or as dict containing the properties 'host' and 'port'. If not specified the environment variables ``HADOOP_HOST_PORT`` or ``HBASE_SITE_XML`` are used.
         name(str): Source name in the Streams context, defaults to a generated name.
 
     Returns:
@@ -115,7 +126,7 @@ def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
     # check streamsx.hbase version
     _add_toolkit_dependency(topology)
 
-    if (_generate_hbase_site_xml(topology)):
+    if (_generate_hbase_site_xml(topology, connection)):
         _op = _HBASEScan(topology, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
     # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
     #    topology.add_file_dependency(hbaseSite, 'etc')
@@ -135,14 +146,15 @@ def scan(topology, table_name, max_versions=None, init_delay=None, name=None):
         return _op.outputs[0]
 
 
-def get(stream, table_name, row_attr_name, name=None):
+def get(stream, table_name, row_attr_name, connection=None, name=None):
     """get tuples from a HBASE table and delivers the number of results, rows and values in output stream.
     
     Args:
         stream: contain the input stream.
         table_name: The name of hbase table.
         row_attr_name(rstring): This parameter specifies the name of the attribute of the output port in which the operator puts the retrieval results. The data type for the attribute depends on whether you specified a columnFamily or columnQualifier.     
-        name(str): Source name in the Streams context, defaults to a generated name.
+        connection(dict|filename|string): Specify the connection to HBASE either with a filename of a HBase configuration file or as string in format "HOST:PORT" or as dict containing the properties 'host' and 'port'. If not specified the environment variables ``HADOOP_HOST_PORT`` or ``HBASE_SITE_XML`` are used.
+        name(str): Operator name in the Streams context, defaults to a generated name.
 
     Returns:
         StreamSchema: Output Stream containing the row numResults and values. It is a structured streams schema.
@@ -152,7 +164,7 @@ def get(stream, table_name, row_attr_name, name=None):
     # check streamsx.hbase version
     _add_toolkit_dependency(stream.topology)
 
-    if (_generate_hbase_site_xml(stream.topology)):
+    if (_generate_hbase_site_xml(stream.topology, connection)):
         _op = _HBASEGet(stream, tableName=table_name, rowAttrName=row_attr_name, schema=HBASEGetOutputSchema, name=name)
         # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
         # stream.topology.add_file_dependency(hbaseSite, 'etc')
@@ -165,7 +177,7 @@ def get(stream, table_name, row_attr_name, name=None):
         return _op.outputs[0]
 
 
-def put(stream, table_name, name=None):
+def put(stream, table_name, connection=None, name=None):
     """put a row which delivers in streams as tuple into a HBASE table.
     
     The output streams has to be defined as StreamSchema.
@@ -173,7 +185,8 @@ def put(stream, table_name, name=None):
     Args:
         stream: contain the input stream.
         table_name: The name of hbase table,
-        name(str): Source name in the Streams context, defaults to a generated name.
+        connection(dict|filename|string): Specify the connection to HBASE either with a filename of a HBase configuration file or as string in format "HOST:PORT" or as dict containing the properties 'host' and 'port'. If not specified the environment variables ``HADOOP_HOST_PORT`` or ``HBASE_SITE_XML`` are used.
+        name(str): Operator name in the Streams context, defaults to a generated name.
 
     Returns:
         StreamSchema: Output Stream containing the result sucesss.
@@ -184,7 +197,7 @@ def put(stream, table_name, name=None):
     # check streamsx.hbase version
     _add_toolkit_dependency(stream.topology)
 
-    if (_generate_hbase_site_xml(stream.topology)):
+    if (_generate_hbase_site_xml(stream.topology, connection)):
         _op = _HBASEPut(stream, tableName=table_name, schema=HBASEPutOutputSchema, name=name)
         # configuration file is specified in hbase-site.xml. This file will be copied to the 'etc' directory of the application bundle.     
         _op.params['hbaseSite'] = "etc/hbase-site.xml"
@@ -196,7 +209,7 @@ def put(stream, table_name, name=None):
         
     return _op.outputs[0]
 
-def delete(stream, table_name, name=None):
+def delete(stream, table_name, connection=None, name=None):
     """delete a row which delivers in streams as tuple from a HBASE table.
     
     The output streams has to be defined as StreamSchema.
@@ -204,7 +217,8 @@ def delete(stream, table_name, name=None):
     Args:
         stream: contain the input stream.
         table_name: The name of hbase table,
-        name(str): Source name in the Streams context, defaults to a generated name.
+        connection(dict|filename|string): Specify the connection to HBASE either with a filename of a HBase configuration file or as string in format "HOST:PORT" or as dict containing the properties 'host' and 'port'. If not specified the environment variables ``HADOOP_HOST_PORT`` or ``HBASE_SITE_XML`` are used.
+        name(str): Operator name in the Streams context, defaults to a generated name.
 
     Returns:
         StreamSchema: Output Stream containing the result sucesss.
@@ -215,7 +229,7 @@ def delete(stream, table_name, name=None):
     # check streamsx.hbase version
     _add_toolkit_dependency(stream.topology)
 
-    if (_generate_hbase_site_xml(stream.topology)):
+    if (_generate_hbase_site_xml(stream.topology, connection)):
         _op = _HBASEDelete(stream, tableName=table_name, schema=HBASEScanOutputSchema, name=name)
         _op.params['hbaseSite'] = "etc/hbase-site.xml"
         _op.params['rowAttrName'] = "character" ;

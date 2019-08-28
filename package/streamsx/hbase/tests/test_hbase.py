@@ -98,7 +98,6 @@ class StringData(object):
 
 class TestParams(unittest.TestCase):
 
-    @unittest.skipIf(((hadoop_host_port_env_var() or site_xml_env_var()))== False, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
     def test_hadoop_host_port(self):
         topo = Topology()
         hbase.scan(topo, table_name=_get_table_name(), max_versions=3)
@@ -119,7 +118,6 @@ class TestDistributed(unittest.TestCase):
         self.hbase_toolkit_location = os.environ['STREAMS_HBASE_TOOLKIT']
 
     # -----------------------------------------------------------
-    @unittest.skipIf(((hadoop_host_port_env_var() or site_xml_env_var()))== False, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
     def test_hbase_put(self):
         topo = Topology('test_hbase_put')
 
@@ -144,7 +142,6 @@ class TestDistributed(unittest.TestCase):
 
  
     # -----------------------------------------------------------
-    @unittest.skipIf(((hadoop_host_port_env_var() or site_xml_env_var()))== False, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
     def test_hbase_get(self):
         topo = Topology('test_hbase_get')
 
@@ -169,7 +166,6 @@ class TestDistributed(unittest.TestCase):
 
 
     # --------------------------------------------------------
-    @unittest.skipIf(((hadoop_host_port_env_var() or site_xml_env_var()))== False, "Missing one of the environment variables: HADOOP_HOST_PORT or HBASE_SITE_XML")
     def test_hbase_scan(self):
         topo = Topology('test_hbase_scan')
 
@@ -190,6 +186,76 @@ class TestDistributed(unittest.TestCase):
         # Run the test
         tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
 
+    # --------------------------------------------------------
+    @unittest.skipIf(((site_xml_env_var()))== False, "Missing HBASE_SITE_XML")
+    def test_hbase_scan_connection_param_file(self):
+        topo = Topology('test_hbase_scan_connection_param_file')
+
+        if self.hbase_toolkit_location is not None:
+            tk.add_toolkit(topo, self.hbase_toolkit_location)
+ 
+        tester = Tester(topo)
+        # set HBASE_SITE_XML file as connection parameter
+        scanned_rows = hbase.scan(topo, table_name=_get_table_name(), max_versions=1 , init_delay=2, connection=os.environ['HBASE_SITE_XML'])
+        scanned_rows.print()
+        tester.tuple_count(scanned_rows, 2, exact=False)
+
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+
+
+    # --------------------------------------------------------
+    @unittest.skipIf(((hadoop_host_port_env_var()))== False, "Missing HADOOP_HOST_PORT")
+    def test_hbase_scan_connection_param_string(self):
+        topo = Topology('test_hbase_scan_connection_param_string')
+
+        if self.hbase_toolkit_location is not None:
+            tk.add_toolkit(topo, self.hbase_toolkit_location)
+ 
+        tester = Tester(topo)
+        # set HADOOP_HOST_PORT string as connection parameter
+        scanned_rows = hbase.scan(topo, table_name=_get_table_name(), max_versions=1 , init_delay=2, connection=os.environ['HADOOP_HOST_PORT'])
+        scanned_rows.print()
+        tester.tuple_count(scanned_rows, 2, exact=False)
+
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+
+    # --------------------------------------------------------
+    @unittest.skipIf(((hadoop_host_port_env_var()))== False, "Missing HADOOP_HOST_PORT")
+    def test_hbase_scan_connection_param_dict(self):
+        topo = Topology('test_hbase_scan_connection_param_dict')
+
+        if self.hbase_toolkit_location is not None:
+            tk.add_toolkit(topo, self.hbase_toolkit_location)
+ 
+        tester = Tester(topo)
+        # set dict as connection parameter with values from HADOOP_HOST_PORT
+        hp = os.environ['HADOOP_HOST_PORT'].split(":", 1)
+        ext_connection = {}
+        ext_connection['host'] = hp[0]
+        ext_connection['port'] = hp[1]
+        scanned_rows = hbase.scan(topo, table_name=_get_table_name(), max_versions=1 , init_delay=2, connection=ext_connection)
+        scanned_rows.print()
+        tester.tuple_count(scanned_rows, 2, exact=False)
+
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
 
 
 class TestICPRemote(TestDistributed):
