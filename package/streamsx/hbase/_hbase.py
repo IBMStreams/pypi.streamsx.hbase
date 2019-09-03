@@ -8,6 +8,9 @@ from tempfile import gettempdir
 import streamsx.spl.op
 import streamsx.spl.types
 from streamsx.topology.schema import StreamSchema
+from streamsx.toolkits import download_toolkit
+
+_TOOLKIT_NAME = 'com.ibm.streamsx.hbase'
 
 
 HBASEScanOutputSchema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
@@ -104,6 +107,41 @@ def _check_time_param(time_value, parameter_name):
     if result <= 1:
         raise ValueError("Invalid "+parameter_name+" value. Value must be at least one second.")
     return result
+
+
+def download_toolkit(url=None, target_dir=None):
+    r"""Downloads the latest Hbase toolkit from GitHub.
+
+    Example for updating the Hbase toolkit for your topology with the latest toolkit from GitHub::
+
+        import streamsx.hbase as hbase
+        # download Hbase toolkit from GitHub
+        hbase_toolkit_location = hbase.download_toolkit()
+        # add the toolkit to topology
+        streamsx.spl.toolkit.add_toolkit(topology, hbase_toolkit_location)
+
+    Example for updating the topology with a specific version of the Hbase toolkit using a URL::
+
+        import streamsx.hbase as hbase
+        url380 = 'https://github.com/IBMStreams/streamsx.hbase/releases/download/v3.8.0/streamsx.hbase.toolkits-3.8.0-20190829-1529.tgz'
+        hbase_toolkit_location = hbase.download_toolkit(url=url380)
+        streamsx.spl.toolkit.add_toolkit(topology, hbase_toolkit_location)
+
+    Args:
+        url(str): Link to toolkit archive (\*.tgz) to be downloaded. Use this parameter to 
+            download a specific version of the toolkit.
+        target_dir(str): the directory where the toolkit is unpacked to. If a relative path is given,
+            the path is appended to the system temporary directory, for example to /tmp on Unix/Linux systems.
+            If target_dir is ``None`` a location relative to the system temporary directory is chosen.
+
+    Returns:
+        str: the location of the downloaded Hbase toolkit
+
+    .. note:: This function requires an outgoing Internet connection
+    .. versionadded:: 1.3
+    """
+    _toolkit_location = streamsx.toolkits.download_toolkit (toolkit_name=_TOOLKIT_NAME, url=url, target_dir=target_dir)
+    return _toolkit_location
 
 
 def scan(topology, table_name, max_versions=None, init_delay=None, connection=None, name=None):
