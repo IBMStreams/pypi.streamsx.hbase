@@ -58,7 +58,7 @@ the scanned rows::
     
 """
 
-__version__='1.3.0'
+__version__='1.3.3'
 
 __all__ = ['download_toolkit', 'scan', 'get', 'put', 'delete']
 from streamsx.hbase._hbase import download_toolkit, scan, get, put, delete
