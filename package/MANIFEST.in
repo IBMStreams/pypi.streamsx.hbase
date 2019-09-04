@@ -1,0 +1,1 @@
+include streamsx/hbase/hbase-site.xml.template
