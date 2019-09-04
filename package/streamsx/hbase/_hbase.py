@@ -56,7 +56,7 @@ def _generate_hbase_site_xml(topo, connection=None):
             hbaseSiteXmlFile = ""
     else:
         if isinstance(connection, dict): # check if dict is set
-            host_port = connection.get('host') + ':' + connection.get('port')
+            host_port = connection.get('host') + ':' + str(connection.get('port'))
         else:
             if os.path.exists(connection): # check if filename is given
                 hbaseSiteXmlFile = connection
