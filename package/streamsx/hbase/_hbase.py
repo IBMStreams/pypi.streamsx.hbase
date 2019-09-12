@@ -112,7 +112,7 @@ def _check_time_param(time_value, parameter_name):
 def download_toolkit(url=None, target_dir=None):
     r"""Downloads the latest Hbase toolkit from GitHub.
 
-    Example for updating the Hbase toolkit for your topology with the latest toolkit from GitHub::
+    Example for updating the Hbase toolkit for your topology with the latest toolkit from GitHub::
 
         import streamsx.hbase as hbase
         # download Hbase toolkit from GitHub
@@ -120,22 +120,22 @@ def download_toolkit(url=None, target_dir=None):
         # add the toolkit to topology
         streamsx.spl.toolkit.add_toolkit(topology, hbase_toolkit_location)
 
-    Example for updating the topology with a specific version of the Hbase toolkit using a URL::
+    Example for updating the topology with a specific version of the Hbase toolkit using a URL::
 
         import streamsx.hbase as hbase
         url380 = 'https://github.com/IBMStreams/streamsx.hbase/releases/download/v3.8.0/streamsx.hbase.toolkits-3.8.0-20190829-1529.tgz'
         hbase_toolkit_location = hbase.download_toolkit(url=url380)
         streamsx.spl.toolkit.add_toolkit(topology, hbase_toolkit_location)
 
-    Args:
-        url(str): Link to toolkit archive (\*.tgz) to be downloaded. Use this parameter to 
+    Args:
+        url(str): Link to toolkit archive (\*.tgz) to be downloaded. Use this parameter to 
             download a specific version of the toolkit.
         target_dir(str): the directory where the toolkit is unpacked to. If a relative path is given,
             the path is appended to the system temporary directory, for example to /tmp on Unix/Linux systems.
             If target_dir is ``None`` a location relative to the system temporary directory is chosen.
 
-    Returns:
-        str: the location of the downloaded Hbase toolkit
+    Returns:
+        str: the location of the downloaded Hbase toolkit
 
     .. note:: This function requires an outgoing Internet connection
     .. versionadded:: 1.3
@@ -244,6 +244,7 @@ def put(stream, table_name, connection=None, name=None):
         _op.params['columnFamilyAttrName'] = "colF" 
         _op.params['columnQualifierAttrName'] = "colQ" 
         _op.params['successAttr'] = "success"
+        _op.params['TimestampAttrName'] = "Timestamp"
         
     return _op.outputs[0]
 
@@ -284,7 +285,9 @@ def delete(stream, table_name, connection=None, name=None):
 # Optional parameters: authKeytab, authPrincipal, columnFamilyAttrName, columnQualifierAttrName, hbaseSite, maxVersions, 
 # minTimestamp, outAttrName, outputCountAttr, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute
 class _HBASEGet(streamsx.spl.op.Invoke):
-    def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, columnFamilyAttrName=None, columnQualifierAttrName=None, hbaseSite=None, maxVersions=None, minTimestamp=None, outAttrName=None, outputCountAttr=None, staticColumnFamily=None, staticColumnQualifier=None, tableName=None, tableNameAttribute=None, name=None):
+    def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, columnFamilyAttrName=None, 
+                 columnQualifierAttrName=None, hbaseSite=None, maxVersions=None, minTimestamp=None, outAttrName=None, outputCountAttr=None, 
+                 staticColumnFamily=None, staticColumnQualifier=None, tableName=None, tableNameAttribute=None, vmArg=None, name=None):
         topology = stream.topology
         kind="com.ibm.streamsx.hbase::HBASEGet"
         inputs=stream
@@ -317,6 +320,9 @@ class _HBASEGet(streamsx.spl.op.Invoke):
             params['tableName'] = tableName
         if tableNameAttribute is not None:
             params['tableNameAttribute'] = tableNameAttribute
+        if vmArg is not None:
+            params['vmArg'] = vmArg
+
 
         super(_HBASEGet, self).__init__(topology,kind,inputs,schema,params,name)
 
@@ -325,7 +331,9 @@ class _HBASEGet(streamsx.spl.op.Invoke):
 # Optional parameter: authKeytab, authPrincipal, channel, endRow, hbaseSite, initDelay, maxChannels, maxThreads, maxVersions, minTimestamp, 
 # outAttrName, outputCountAttr, rowPrefix, startRow, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute, triggerCount
 class _HBASEScan(streamsx.spl.op.Invoke):
-    def __init__(self, topology, schema=None, authKeytab=None, authPrincipal=None, channel=None, endRow=None, hbaseSite=None, initDelay=None, maxChannels=None, maxThreads=None,  maxVersions=None, minTimestamp=None, outAttrName=None, outputCountAttr=None, rowPrefix=None, startRow=None, staticColumnFamily=None, staticColumnQualifier=None, tableName=None, tableNameAttribute=None, triggerCount=None, name=None):
+    def __init__(self, topology, schema=None, authKeytab=None, authPrincipal=None, channel=None, endRow=None, hbaseSite=None, initDelay=None, 
+                 maxChannels=None, maxThreads=None,  maxVersions=None, minTimestamp=None, outAttrName=None, outputCountAttr=None, rowPrefix=None, 
+                 startRow=None, staticColumnFamily=None, staticColumnQualifier=None, tableName=None, tableNameAttribute=None, triggerCount=None, vmArg=None, name=None):
 #        topology = stream.topology
         kind="com.ibm.streamsx.hbase::HBASEScan"
         inputs=None
@@ -366,6 +374,8 @@ class _HBASEScan(streamsx.spl.op.Invoke):
             params['tableName'] = tableName
         if tableNameAttribute is not None:
             params['tableNameAttribute'] = tableNameAttribute
+        if vmArg is not None:
+            params['vmArg'] = vmArg
 
         super(_HBASEScan, self).__init__(topology,kind,inputs,schema,params,name)
 
@@ -376,7 +386,9 @@ class _HBASEScan(streamsx.spl.op.Invoke):
 # Optional parameters: authKeytab, authPrincipal, batchSize, checkAttrName, columnFamilyAttrName, columnQualifierAttrName, 
 # enableBuffer, hbaseSite, staticColumnFamily, staticColumnQualifier, successAttr, tableName, tableNameAttribute
 class _HBASEPut(streamsx.spl.op.Invoke):
-    def __init__(self, stream, schema=None, rowAttrName=None, valueAttrName=None, authKeytab=None, authPrincipal=None, batchSize=None, checkAttrName=None, columnFamilyAttrName=None, columnQualifierAttrName=None, enableBuffer=None, hbaseSite=None, staticColumnFamily=None, staticColumnQualifier=None, successAttr=None, tableName=None, tableNameAttribute=None, name=None):
+    def __init__(self, stream, schema=None, rowAttrName=None, valueAttrName=None, authKeytab=None, authPrincipal=None, batchSize=None, checkAttrName=None, 
+                 columnFamilyAttrName=None, columnQualifierAttrName=None, enableBuffer=None, hbaseSite=None, staticColumnFamily=None, staticColumnQualifier=None, 
+                 successAttr=None, tableName=None, tableNameAttribute=None, Timestamp=None, TimestampAttrName=None, vmArg=None, name=None):
         kind="com.ibm.streamsx.hbase::HBASEPut"
         inputs=stream
         topology = stream.topology
@@ -411,6 +423,12 @@ class _HBASEPut(streamsx.spl.op.Invoke):
             params['tableName'] = tableName
         if tableNameAttribute is not None:
             params['tableNameAttribute'] = tableNameAttribute
+        if Timestamp is not None:
+            params['Timestamp'] = Timestamp
+        if TimestampAttrName is not None:
+            params['TimestampAttrName'] = TimestampAttrName
+        if vmArg is not None:
+            params['vmArg'] = vmArg
 
         super(_HBASEPut, self).__init__(topology,kind,inputs,schema,params,name)
 
@@ -420,7 +438,9 @@ class _HBASEPut(streamsx.spl.op.Invoke):
 # Optional parameters: authKeytab, authPrincipal, batchSize, checkAttrName, columnFamilyAttrName, columnQualifierAttrName, deleteAllVersions, 
 # hbaseSite, staticColumnFamily, staticColumnQualifier, successAttr, tableName, tableNameAttribute
 class _HBASEDelete(streamsx.spl.op.Invoke):
-    def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, batchSize=None, checkAttrName=None, columnFamilyAttrName=None, columnQualifierAttrName=None, deleteAllVersions=None, hbaseSite=None, staticColumnFamily=None, staticColumnQualifier=None, successAttr=None, tableName=None, tableNameAttribute=None, name=None):
+    def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, batchSize=None, checkAttrName=None, columnFamilyAttrName=None, 
+                 columnQualifierAttrName=None, deleteAllVersions=None, hbaseSite=None, staticColumnFamily=None, staticColumnQualifier=None, successAttr=None, 
+                 tableName=None, tableNameAttribute=None, vmArg=None, name=None):
         topology = stream.topology
         kind="com.ibm.streamsx.hbase::HBASEDelete"
         inputs=stream
@@ -453,6 +473,8 @@ class _HBASEDelete(streamsx.spl.op.Invoke):
             params['tableName'] = tableName
         if tableNameAttribute is not None:
             params['tableNameAttribute'] = tableNameAttribute
+        if vmArg is not None:
+            params['vmArg'] = vmArg
 
         super(_HBASEDelete, self).__init__(topology,kind,inputs,schema,params,name)
 
@@ -462,7 +484,9 @@ class _HBASEDelete(streamsx.spl.op.Invoke):
 # Optional parameters: authKeytab, authPrincipal, columnFamilyAttrName, columnQualifierAttrName, hbaseSite, 
 # increment, incrementAttrName, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute
 class _HBASEIncrement(streamsx.spl.op.Invoke):
-    def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, columnFamilyAttrName=None, columnQualifierAttrName=None, deleteAllVersions=None, hbaseSite=None,  increment=None, incrementAttrName=None, staticColumnFamily=None, staticColumnQualifier=None, successAttr=None, tableName=None, tableNameAttribute=None, name=None):
+    def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, columnFamilyAttrName=None, columnQualifierAttrName=None, 
+                 deleteAllVersions=None, hbaseSite=None,  increment=None, incrementAttrName=None, staticColumnFamily=None, staticColumnQualifier=None, 
+                 successAttr=None, tableName=None, tableNameAttribute=None, vmArg=None, name=None):
         topology = stream.topology
         kind="com.ibm.streamsx.hbase::HBASEIncrement"
         inputs=stream
@@ -495,6 +519,8 @@ class _HBASEIncrement(streamsx.spl.op.Invoke):
             params['tableName'] = tableName
         if tableNameAttribute is not None:
             params['tableNameAttribute'] = tableNameAttribute
+        if vmArg is not None:
+            params['vmArg'] = vmArg
 
         super(_HBASEIncrement, self).__init__(topology,kind,inputs,schema,params,name)
 
