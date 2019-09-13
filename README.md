@@ -111,5 +111,10 @@ or
 
     ant test
 
+For a quick test:
 
+```
+cd package
+python3 -u -m unittest streamsx.hbase.tests.test_hbase.TestDistributedPut
+```
 
