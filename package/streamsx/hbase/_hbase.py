@@ -34,7 +34,7 @@ HBASEPutOutputSchema = StreamSchema('tuple<boolean success>')
 def _add_toolkit_dependency(topo):
     # IMPORTANT: Dependency of this python wrapper to a specific toolkit version
     # This is important when toolkit is not set with streamsx.spl.toolkit.add_toolkit (selecting toolkit from remote build service)
-    streamsx.spl.toolkit.add_toolkit_dependency(topo, 'com.ibm.streamsx.hbase', '[3.4.0,4.0.0)')
+    streamsx.spl.toolkit.add_toolkit_dependency(topo, 'com.ibm.streamsx.hbase', '[3.8.0,4.0.0)')
 
 
 
