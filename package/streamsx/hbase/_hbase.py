@@ -282,10 +282,14 @@ def delete(stream, table_name, connection=None, name=None):
 
 
 # HBASEGet
-# Required parameter: rowAttrName
-# Optional parameters: authKeytab, authPrincipal, columnFamilyAttrName, columnQualifierAttrName, hbaseSite, maxVersions, 
-# minTimestamp, outAttrName, outputCountAttr, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute
 class _HBASEGet(streamsx.spl.op.Invoke):
+    """
+        _HBASEGet
+        The The HBASEGet operator gets tuples from an HBase table.
+        Required parameter: rowAttrName
+        Optional parameters: authKeytab, authPrincipal, columnFamilyAttrName, columnQualifierAttrName, hbaseSite, maxVersions, 
+        minTimestamp, outAttrName, outputCountAttr, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute
+     """
     def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, columnFamilyAttrName=None, 
                  columnQualifierAttrName=None, hbaseSite=None, maxVersions=None, minTimestamp=None, outAttrName=None, outputCountAttr=None, 
                  staticColumnFamily=None, staticColumnQualifier=None, tableName=None, tableNameAttribute=None, vmArg=None, name=None):
@@ -329,13 +333,20 @@ class _HBASEGet(streamsx.spl.op.Invoke):
 
 
 # HBASEScan
-# Optional parameter: authKeytab, authPrincipal, channel, endRow, hbaseSite, initDelay, maxChannels, maxThreads, maxVersions, minTimestamp, 
-# outAttrName, outputCountAttr, rowPrefix, startRow, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute, triggerCount
 class _HBASEScan(streamsx.spl.op.Invoke):
+    """
+        _HBASEScan
+        The HBASEScan operator scans an HBase table. Like the FileSource operator, it has an optional input port. 
+        If no input port is specifed, then the operator scans the table according to the parameters that you specify, and sends the final punctuation. 
+        If you specify an input port, the operator does not start a scan until it receives a tuple. 
+        After the operator receives a tuple, it scans according to that tuple and produces a punctuation. 
+        parameters: authKeytab, authPrincipal, channel, endRow, hbaseSite, initDelay, maxChannels, maxThreads, maxVersions, minTimestamp, 
+        outAttrName, outputCountAttr, rowPrefix, startRow, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute, triggerCount
+    """
+    
     def __init__(self, topology, schema=None, authKeytab=None, authPrincipal=None, channel=None, endRow=None, hbaseSite=None, initDelay=None, 
                  maxChannels=None, maxThreads=None,  maxVersions=None, minTimestamp=None, outAttrName=None, outputCountAttr=None, rowPrefix=None, 
                  startRow=None, staticColumnFamily=None, staticColumnQualifier=None, tableName=None, tableNameAttribute=None, triggerCount=None, vmArg=None, name=None):
-#        topology = stream.topology
         kind="com.ibm.streamsx.hbase::HBASEScan"
         inputs=None
         params = dict()
@@ -383,10 +394,14 @@ class _HBASEScan(streamsx.spl.op.Invoke):
 
 
 # HBASEPut
-# Required parameters: rowAttrName, valueAttrName
-# Optional parameters: authKeytab, authPrincipal, batchSize, checkAttrName, columnFamilyAttrName, columnQualifierAttrName, 
-# enableBuffer, hbaseSite, staticColumnFamily, staticColumnQualifier, successAttr, tableName, tableNameAttribute
 class _HBASEPut(streamsx.spl.op.Invoke):
+    """
+        _HBASEPut
+        The HBASEPut operator puts tuples into an Hbase table. 
+        Required parameters: rowAttrName, valueAttrName
+        Optional parameters: authKeytab, authPrincipal, batchSize, checkAttrName, columnFamilyAttrName, columnQualifierAttrName, 
+        enableBuffer, hbaseSite, staticColumnFamily, staticColumnQualifier, successAttr, tableName, tableNameAttribute
+    """
     def __init__(self, stream, schema=None, rowAttrName=None, valueAttrName=None, authKeytab=None, authPrincipal=None, batchSize=None, checkAttrName=None, 
                  columnFamilyAttrName=None, columnQualifierAttrName=None, enableBuffer=None, hbaseSite=None, staticColumnFamily=None, staticColumnQualifier=None, 
                  successAttr=None, tableName=None, tableNameAttribute=None, Timestamp=None, TimestampAttrName=None, vmArg=None, name=None):
@@ -435,10 +450,14 @@ class _HBASEPut(streamsx.spl.op.Invoke):
 
 
 # HBASEDelete
-# Required parameter: rowAttrName
-# Optional parameters: authKeytab, authPrincipal, batchSize, checkAttrName, columnFamilyAttrName, columnQualifierAttrName, deleteAllVersions, 
-# hbaseSite, staticColumnFamily, staticColumnQualifier, successAttr, tableName, tableNameAttribute
 class _HBASEDelete(streamsx.spl.op.Invoke):
+    """
+        _HBASEDelete
+        The HBASEDelete operator deletes an entry, an entire row, a columnFamily in a row, or a columnFamily, columnQualifier pair in a row from an HBase table.
+         Required parameters: rowAttrName
+        Optional parameters: authKeytab, authPrincipal, batchSize, checkAttrName, columnFamilyAttrName, columnQualifierAttrName, deleteAllVersions, 
+        hbaseSite, staticColumnFamily, staticColumnQualifier, successAttr, tableName, tableNameAttribute
+    """
     def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, batchSize=None, checkAttrName=None, columnFamilyAttrName=None, 
                  columnQualifierAttrName=None, deleteAllVersions=None, hbaseSite=None, staticColumnFamily=None, staticColumnQualifier=None, successAttr=None, 
                  tableName=None, tableNameAttribute=None, vmArg=None, name=None):
@@ -481,10 +500,15 @@ class _HBASEDelete(streamsx.spl.op.Invoke):
 
 
 # HBASEIncrement
-# Required parameter: rowAttrName
-# Optional parameters: authKeytab, authPrincipal, columnFamilyAttrName, columnQualifierAttrName, hbaseSite, 
-# increment, incrementAttrName, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute
 class _HBASEIncrement(streamsx.spl.op.Invoke):
+    """
+        _HBASEIncrement
+        The HBASEIncrement operator increments the specified HBase entry. The operator uses the HTable.increment function. 
+        You can specify the value to increment as an operator parameter or as an attribute in the input tuple. 
+        Required parameters: rowAttrName
+        Optional parameters: authKeytab, authPrincipal, columnFamilyAttrName, columnQualifierAttrName, hbaseSite, 
+        increment, incrementAttrName, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute
+    """
     def __init__(self, stream, schema=None, rowAttrName=None, authKeytab=None, authPrincipal=None, columnFamilyAttrName=None, columnQualifierAttrName=None, 
                  deleteAllVersions=None, hbaseSite=None,  increment=None, incrementAttrName=None, staticColumnFamily=None, staticColumnQualifier=None, 
                  successAttr=None, tableName=None, tableNameAttribute=None, vmArg=None, name=None):
@@ -1211,15 +1235,6 @@ class HBaseScan(streamsx.topology.composite.Source):
     """
 
  
- 
-#   def __init__(self, topology, schema=None, authKeytab=None, authPrincipal=None, channel=None, endRow=None, hbaseSite=None, initDelay=None, 
-#                 maxChannels=None, maxThreads=None,  maxVersions=None, minTimestamp=None, outAttrName=None, outputCountAttr=None, rowPrefix=None, 
-#                 startRow=None, staticColumnFamily=None, staticColumnQualifier=None, tableName=None, tableNameAttribute=None, triggerCount=None, vmArg=None, name=None):
-   
-#Optional: authKeytab, authPrincipal, channel, endRow, hbaseSite, initDelay, maxChannels, maxThreads, maxVersions, minTimestamp, outAttrName, 
-#outputCountAttr, rowPrefix, startRow, staticColumnFamily, staticColumnQualifier, tableName, tableNameAttribute, triggerCount
- 
-#    def __init__(self, tableName, schema=CommonSchema.String, **options):
     def __init__(self, tableName, connection=None, schema=CommonSchema.String, name=None, **options):
         self.name = name
         self.schema = schema
@@ -1521,8 +1536,6 @@ class HBaseScan(streamsx.topology.composite.Source):
     def vmArg(self, value):
         self._vmArg = value
 
-#    def populate(self, topology, schema, **options):
-#    def populate(self, topology, stream, schema, name, **options):
     def populate(self, topology, stream, **options):
   
         if self.channel is not None:
