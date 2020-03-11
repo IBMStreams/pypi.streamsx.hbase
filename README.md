@@ -117,4 +117,13 @@ For a quick test:
 cd package
 python3 -u -m unittest streamsx.hbase.tests.test_hbase.TestDistributedPut
 ```
+### Test with local Streams instance and composite classes 
+This test requires STREAMS_INSTALL set and a running Streams instance.
 
+Required envionment variable for the `com.ibm.streamsx.hbase` toolkit  location: `STREAMS_HBASE_TOOLKIT`
+and HADOOP_HOST_PORT environment variable (hostname:port) to create a hbase-site.xml file.
+
+```
+cd package
+python3 -u -m unittest streamsx.hbase.tests.test_hbase.TestCompositeClass
+```

@@ -8,6 +8,8 @@ from streamsx.topology.topology import streamsx, Topology
 from streamsx.topology.tester import Tester
 from streamsx.topology.schema import StreamSchema
 import streamsx.spl.toolkit as tk
+import streamsx.spl.op as op
+
 
 import unittest
 import os
@@ -67,10 +69,23 @@ def cloud_creds_env_var():
         result = False
     return result
 
-def _create_stream_for_get(topo):
+def _create_stream_for_get1(topo):
+#    s = topo.source([1,2,3,4,5,6])
+#    rs = 'tuple<int32 id, rstring who, rstring colF, rstring colQ>'
+#    return s.map(lambda x : (x,'X'+str(x*2)), schema=rs)
+
     s = topo.source([1,2,3,4,5,6])
-    schema=StreamSchema('tuple<int32 id, rstring who, rstring infoType, rstring requestedDetail>').as_tuple()
+#    schema=StreamSchema('tuple<int32 id, rstring who, rstring colF, rstring colQ>').as_tuple()
+    schema='tuple<int32 id, rstring who, rstring colF, rstring colQ>'
     return s.map(lambda x : (x,'Gandalf', 'location','beginTwoTowers'), schema=schema)
+
+def _create_stream_for_get(topo):
+    createRows = op.Source(topo, "spl.utility::Beacon", 'tuple<int32 id, rstring who, rstring colF, rstring colQ>', params = {'period':0.01, 'iterations':10})
+    createRows.id = createRows.output('(int32) IterationCount()')
+    createRows.who = createRows.output('"Gandalf_" + (rstring) IterationCount()')
+    createRows.colF = createRows.output('"location"')
+    createRows.colQ = createRows.output('"beginTwoTowers"')
+    return createRows.stream
 
 def _get_timestamp():
     # get current time in mili seconds as Timestamp 
@@ -78,10 +93,26 @@ def _get_timestamp():
     return timeStamp
 
 
+
+
 def _create_stream_for_put(topo):
-    # create 6 rows
+    # create 6 rows        
+    createRows = op.Source(topo, "spl.utility::Beacon", 'tuple<int32 id, rstring character, rstring colF, rstring colQ, rstring value, int64 Timestamp>', 
+                           params = {'period':0.01, 'iterations':10}, 
+                           name = 'createRows')
+    createRows.id = createRows.output('(int32) IterationCount()')
+    createRows.character = createRows.output('"Gandalf_" + (rstring) IterationCount()')
+    createRows.colF = createRows.output('"location"')
+    createRows.colQ = createRows.output('"beginTwoTowers"')
+    createRows.value = createRows.output('"travelling_" + (rstring) IterationCount()')
+    createRows.Timestamp = createRows.output('(int64)getTimestampInSecs() + (int64)IterationCount()')
+    return createRows.stream
+
+def _create_stream_for_put1(topo):
+    # create 6 rows        
     s = topo.source([1,2,3,4,5,6])
     timeStamp = _get_timestamp()
+ 
     schema=StreamSchema('tuple<int32 id, rstring character, rstring colF, rstring colQ, rstring value, int64 Timestamp>').as_tuple()
     return s.map(lambda x : (x,'Gandalf_' + str(x), 'location','beginTwoTowers', 'travelling_' + str(x), timeStamp + x) , schema=schema)
 
@@ -146,6 +177,234 @@ class TestDistributedPut(unittest.TestCase):
         job_config = streamsx.topology.context.JobConfig(tracing='info')
         job_config.add(cfg)
         cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+
+
+class TestCompositeScan(unittest.TestCase):
+    """ Test in local Streams instance with local toolkit from STREAMS_HBASE_TOOLKIT environment variable """
+
+    @classmethod
+    def setUpClass(self):
+        print (str(self))
+
+    def setUp(self):
+        Tester.setup_distributed(self)
+        self.hbase_toolkit_location = os.environ['STREAMS_HBASE_TOOLKIT']
+    
+    # -----------------------------------------------------------
+    def test_hbase_scan_composite(self):
+        topo = Topology('hbase_scan_composite')
+        print ('\n--------------------------- \nTest :   ' + topo.name + '\n--------------------------- ')
+
+
+        if self.hbase_toolkit_location is not None:
+            tk.add_toolkit(topo, self.hbase_toolkit_location)
+
+        tester = Tester(topo)
+
+        output_schema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
+
+        # Additional optional parameters as variable keyword arguments for HBaseScan.
+        options = {
+            'initDelay': 2.0,
+            'outAttrName' : 'value',
+            'outputCountAttr' : 'numResults', 
+            'maxVersions' : 0
+         }       
+
+
+        # hbase.HBaseScan creates site.xml file with the use of environment variable HADOOP_HOST_PORT / HBASE_SITE_XML
+
+        scanned_rows = topo.source(hbase.HBaseScan(tableName=_get_table_name(), schema=output_schema,  **options))
+
+        scanned_rows.print(name='printScan')
+
+        tester.tuple_count(scanned_rows, 2, exact=False)
+        #tester.run_for(60)
+
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+
+
+
+class TestCompositeClass(unittest.TestCase):
+    """ Test in local Streams instance with local toolkit from STREAMS_HBASE_TOOLKIT environment variable """
+
+    @classmethod
+    def setUpClass(self):
+        print (str(self))
+
+    def setUp(self):
+        Tester.setup_distributed(self)
+        self.hbase_toolkit_location = os.environ['STREAMS_HBASE_TOOLKIT']
+    
+    # -----------------------------------------------------------
+    def test_hbase_put_composite(self):
+        topo = Topology('hbase_put_composite')
+        print ('\n--------------------------- \nTest :   ' + topo.name + '\n--------------------------- ')
+
+
+        if self.hbase_toolkit_location is not None:
+            tk.add_toolkit(topo, self.hbase_toolkit_location)
+        inputStream = _create_stream_for_put(topo) 
+        tester = Tester(topo)
+
+        output_schema = StreamSchema('tuple<boolean success>')
+
+        # Additional optional parameters as variable keyword arguments for HBaseGet
+        options = {
+          'columnFamilyAttrName' : 'colF',
+          'columnQualifierAttrName' : "colQ",
+          'TimestampAttrName' : 'Timestamp',
+          'successAttr' : 'success'  
+        }       
+
+
+        # hbase.HBasePut creates site.xml file with the use of environment variable HADOOP_HOST_PORT / HBASE_SITE_XML
+
+        put_rows = inputStream.map(hbase.HBasePut(tableName='streamsSample_lotr', rowAttrName='character', valueAttrName='value', schema=output_schema, **options))
+ 
+        put_rows.print(name='printPut')
+
+        tester.tuple_count(put_rows, 2, exact=False)
+        # tester.run_for(60)
+
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+    
+       
+    # -----------------------------------------------------------
+    def test_hbase_get_composite(self):
+        topo = Topology('test_hbase_get_composite')
+        print ('\n--------------------------- \nTest :   ' + topo.name + '\n--------------------------- ')
+
+        if self.hbase_toolkit_location is not None:
+            tk.add_toolkit(topo, self.hbase_toolkit_location)
+        tester = Tester(topo)
+  
+        inputStream = _create_stream_for_get(topo) 
+        # hbase.get creates site.xml file with the use of environment variable HADOOP_HOST_PORT / HBASE_SITE_XML
+
+        output_schema = StreamSchema('tuple<rstring who, rstring colF, rstring colQ, rstring value, int32 numResults>')
+
+        # Additional optional parameters as variable keyword arguments for HBaseGet
+        options = {
+          'columnFamilyAttrName' : 'colF',
+          'columnQualifierAttrName' : "colQ",
+          'outAttrName' : "value" ,
+          'outputCountAttr' : 'numResults',
+          'maxVersions' : 0 
+        }       
+
+        get_rows = inputStream.map(hbase.HBaseGet(tableName=_get_table_name(), rowAttrName='who', schema=output_schema, **options))
+        get_rows.print(name='printGet')
+ 
+        # tester.run_for(60)
+
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+        
+            # -----------------------------------------------------------
+    def test_hbase_scan_composite(self):
+        topo = Topology('hbase_scan_composite')
+        print ('\n--------------------------- \nTest :   ' + topo.name + '\n--------------------------- ')
+
+
+        if self.hbase_toolkit_location is not None:
+            tk.add_toolkit(topo, self.hbase_toolkit_location)
+
+        tester = Tester(topo)
+
+        output_schema = StreamSchema('tuple<rstring row, int32 numResults, rstring columnFamily, rstring columnQualifier, rstring value>')
+
+        # Additional optional parameters as variable keyword arguments for HBaseScan.
+        options = {
+            'initDelay': 2.0,
+            'outAttrName' : 'value',
+            'outputCountAttr' : 'numResults', 
+            'maxVersions' : 0
+         }       
+
+
+        # hbase.HBaseScan creates site.xml file with the use of environment variable HADOOP_HOST_PORT / HBASE_SITE_XML
+
+        scanned_rows = topo.source(hbase.HBaseScan(tableName=_get_table_name(), schema=output_schema,  **options))
+
+        scanned_rows.print(name='printScan')
+
+        tester.tuple_count(scanned_rows, 2, exact=False)
+        #tester.run_for(60)
+
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False     
+        # Run the test
+        tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
+
+
+
+class TestDistributed1(unittest.TestCase):
+    """ Test in local Streams instance with local toolkit from STREAMS_HBASE_TOOLKIT environment variable """
+
+    @classmethod
+    def setUpClass(self):
+        print (str(self))
+
+    def setUp(self):
+        Tester.setup_distributed(self)
+        self.hbase_toolkit_location = os.environ['STREAMS_HBASE_TOOLKIT']
+
+    # -----------------------------------------------------------
+    def test_hbase_put(self):
+        topo = Topology('test_hbase_put')
+        print ('\n--------------------------- \nTest :   ' + topo.name + '\n--------------------------- ')
+
+        # standart operator Beacon generates some lines
+ #       createRows = op.Source(topo, "spl.utility::Beacon", 'tuple<int32 id, rstring character, rstring colF, rstring colQ, rstring value, int64 Timestamp>', params = {'period':0.01, 'iterations':10})
+ #       createRows.id = createRows.output('(int32) IterationCount()')
+ #       createRows.character = createRows.output('"Gandalfffff_" + (rstring) IterationCount()')
+ #       createRows.colF = createRows.output('"location"')
+ #       createRows.colQ = createRows.output('"beginTwoTowers"')
+ #       createRows.value = createRows.output('"travelling_" + (rstring) IterationCount()')
+ #       createRows.Timestamp = createRows.output('(int64)getTimestampInSecs() + (int64)IterationCount()')
+
+
+#        createRows = op.Source(topo, "spl.utility::Beacon", '<int32 id, rstring character>', params = {'period':0.01, 'iterations':6})
+ #   createRows = op.Source(topo, "spl.utility::Beacon", '<int32 id, rstring character, rstring colF, rstring colQ, rstring value, int64 Timestamp>', params = {'period':0.01, 'iterations':6})
+ #       createRows.id = createRows.output(5)
+#        createRows.character = createRows.output('"Gandalf_"')
+
+
+        if self.hbase_toolkit_location is not None:
+            tk.add_toolkit(topo, self.hbase_toolkit_location)
+        s = _create_stream_for_put(topo) 
+#        s.print()
+        tester = Tester(topo)
+        # hbase.put creates site.xml file with the use of environment variable HADOOP_HOST_PORT / HBASE_SITE_XML
+        put_rows = hbase.put(s, table_name=_get_table_name())
+        put_rows.print(name='printPut')
+
+        tester.tuple_count(put_rows, 5, exact=False)
+        tester.run_for(60)
+        cfg = {}
+        job_config = streamsx.topology.context.JobConfig(tracing='info')
+        job_config.add(cfg)
+        cfg[streamsx.topology.context.ConfigParams.SSL_VERIFY] = False
+
         # Run the test
         tester.test(self.test_ctxtype, cfg, always_collect_logs=True)
 
