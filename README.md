@@ -98,7 +98,7 @@ python3 -u -m unittest streamsx.hbase.tests.test_hbase.TestParams
 
 ### Test with local Streams instance
 
-This test requires STREAMS_INSTALL set and a running Streams instance.
+This test requires `STREAMS_INSTALL` set and a running Streams instance.
 
 Required environment variable for the `com.ibm.streamsx.hbase` toolkit  location: `STREAMS_HBASE_TOOLKIT`
 
@@ -118,16 +118,16 @@ cd package
 python3 -u -m unittest streamsx.hbase.tests.test_hbase.TestDistributedPut
 ```
 ### Test with local Streams instance and composite classes 
-This test requires STREAMS_INSTALL set and a running Streams instance.
+This test requires `STREAMS_INSTALL` set and a running Streams instance.
 
 Required environment variable for the `com.ibm.streamsx.hbase` toolkit  location: `STREAMS_HBASE_TOOLKIT`
 And `HADOOP_HOST_PORT` environment variable (hostname:port) to create a `hbase-site.xml` file.
 
-1- The standard `Beacon` operator creates 10 rows.
-2- The `HBasePut` puts the rows into test table 'streamsSample_lotr'
-3- The standard `Beacon` operator creates 10 rwos as query for HbsaeGet
-4- The `HBaseGet` gets the rows from test table 'streamsSample_lotr'
-5- The `HBaseScan` scans the test table 'streamsSample_lotr' and delivers the rows in output stream
+- The standard `Beacon` operator creates 10 rows.
+- The `HBasePut` puts the rows into test table 'streamsSample_lotr'
+- The standard `Beacon` operator creates 10 rwos as query for HbsaeGet
+- The `HBaseGet` gets the rows from test table 'streamsSample_lotr'
+- The `HBaseScan` scans the test table 'streamsSample_lotr' and delivers the rows in output stream
 
 
 ```
