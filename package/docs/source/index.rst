@@ -1,8 +1,8 @@
 streamsx.hbase package
 ######################
 
-IBM Streams HBASE integration
-==============================
+HBASE integration for IBM Streams
+=================================
 
 For details of implementing applications in Python
 for IBM Streams and the Streaming Analytics service

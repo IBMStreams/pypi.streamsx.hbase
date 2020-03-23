@@ -5,7 +5,7 @@ setup(
   packages = ['streamsx.hbase'],
   include_package_data=True,
   version = streamsx.hbase.__version__,
-  description = 'IBM Streams HBASE integration',
+  description = 'HBASE integration for IBM Streams',
   long_description = open('DESC.txt').read(),
   author = 'IBM Streams @ github.com',
   author_email = 'ahmad.nouri@de.ibm.com',
