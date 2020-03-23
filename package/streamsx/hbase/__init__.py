@@ -60,5 +60,6 @@ the scanned rows::
 
 __version__='1.5.0'
 
-__all__ = ['download_toolkit', 'scan', 'get', 'put', 'delete']
+__all__ = ['HBaseGet', 'HBasePut', 'HBaseScan', 'download_toolkit', 'scan', 'get', 'put', 'delete']
 from streamsx.hbase._hbase import download_toolkit, scan, get, put, delete, HBaseGet, HBasePut, HBaseScan
+
