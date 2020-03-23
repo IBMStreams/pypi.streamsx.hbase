@@ -555,7 +555,7 @@ class HBaseGet(streamsx.topology.composite.Map):
     """
     HBaseGet gets tuples from an HBase table. 
 
-    Example, gets tuples from HBase table 'streamsSample_lotr'.
+    Example, gets tuples from HBase table 'streamsSample_lotr'::
 
         inputStream = _create_stream_for_get(topo) 
         # crete a query stream
@@ -856,7 +856,7 @@ class HBasePut(streamsx.topology.composite.Map):
     HBasePut puts the incoming tuples into an Hbase table. 
 
 
-    Example, puts tuples into HBase table 'streamsSample_lotr'.
+    Example, puts tuples into HBase table 'streamsSample_lotr'::
 
         import streamsx.hbase as hbase
 
@@ -1206,7 +1206,7 @@ class HBaseScan(streamsx.topology.composite.Source):
     If no input port is specifed, then the operator scans the table according to the parameters that you specify, and sends the final punctuation.
 
 
-    Example, puts tuples into HBase table 'streamsSample_lotr'.
+    Example, puts tuples into HBase table 'streamsSample_lotr'::
 
         import streamsx.hbase as hbase
 
